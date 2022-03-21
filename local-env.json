@@ -1,0 +1,6 @@
+{
+  "MainFunction": {
+    "SECURE": "false",
+    "AWS_ENDPOINT": "http://dynamodb:8000"
+  }
+}

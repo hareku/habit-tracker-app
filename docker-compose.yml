@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  dynamodb:
+    image: amazon/dynamodb-local:1.18.0
+    command: -jar DynamoDBLocal.jar -dbPath /var/dynamodb -sharedDb
+    volumes:
+    - .dynamodb:/var/dynamodb
+    expose:
+      - 8000
+    ports:
+      - 8000:8000
+  dynamodb-admin:
+    image: aaronshaf/dynamodb-admin:4.3.1
+    expose:
+      - 8001
+    ports:
+      - 8001:8001
+    environment:
+      DYNAMO_ENDPOINT: http://dynamodb:8000
+      AWS_ACCESS_KEY_ID: local
+      AWS_SECRET_ACCESS_KEY: local
+      AWS_REGION: ap-northeast-1

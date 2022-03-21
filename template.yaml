@@ -1,0 +1,78 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  habit-tracker-app
+
+# More info about Globals: https://github.com/awslabs/serverless-application-model/blob/master/docs/globals.rst
+Globals:
+  Function:
+    Timeout: 5
+  Api:
+    Domain:
+      DomainName: habit-tracker-app.mycode.rip
+      CertificateArn: arn:aws:acm:ap-northeast-1:691674064993:certificate/efeee36b-bbf9-4ea0-ac3e-09dec8a56fc0
+      Route53:
+        HostedZoneId: Z21S344L881LRG
+
+Resources:
+  MainFunction:
+    Type: AWS::Serverless::Function # More info about Function Resource: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#awsserverlessfunction
+    Properties:
+      CodeUri: cmd/lambda/
+      Handler: lambda
+      Runtime: go1.x
+      Architectures:
+        - x86_64
+      Tracing: Active # https://docs.aws.amazon.com/lambda/latest/dg/lambda-x-ray.html
+      Events:
+        CatchGet:
+          Type: Api # More info about API Event Source: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#api
+          Properties:
+            Path: /
+            Method: GET
+        CatchGetProxy:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: GET
+        CatchPostProxy:
+          Type: Api
+          Properties:
+            Path: /{proxy+}
+            Method: Post
+      Environment: # More info about Env Vars: https://github.com/awslabs/serverless-application-model/blob/master/versions/2016-10-31.md#environment-object
+        Variables:
+          SECURE: true
+          AWS_ENDPOINT: ""
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref DynamoDBTable
+
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: HabitTrackerApp
+      BillingMode: PAY_PER_REQUEST
+      SSESpecification:
+        SSEEnabled: False
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+        - AttributeName: CheckDateLSISK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+      LocalSecondaryIndexes:
+        - IndexName: CheckDateLSI
+          KeySchema:
+            - AttributeName: PK
+              KeyType: HASH
+            - AttributeName: CheckDateLSISK
+              KeyType: RANGE
+          Projection:
+            ProjectionType: ALL

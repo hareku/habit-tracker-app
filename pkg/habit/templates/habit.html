@@ -1,0 +1,26 @@
+{{define "body"}}
+<p>Hello, <b>{{.User.DisplayName}}</b></p>
+<h2>Habit: <b>{{.Habit.Title}}</b></h2>
+<p><a href="/">Back to habits</a></p>
+
+<h2>Check from here</h2>
+<form action="/checks" method="post">
+  {{ .CSRFHiddenInput }}
+  <input type="hidden" name="habit_uuid" value="{{.Habit.UUID}}">
+  <input type="date" name="date" required>
+  <input type="submit" value="check">
+</form>
+
+<h2>Checks</h2>
+{{range .Checks}}
+  <div>
+    <h3>{{.Date}}</h3>
+    <form action="/delete-check" method="post" onsubmit="return window.confirm('Delete {{.Date}}?')">
+      {{ $.CSRFHiddenInput }}
+      <input type="hidden" name="habit_uuid" value="{{$.Habit.UUID}}">
+      <input type="hidden" name="date" value="{{.Date}}">
+      <input type="submit" value="uncheck">
+    </form>
+  </div>
+{{end}}
+{{end}}
