@@ -22,7 +22,6 @@ type NewHTTPHandlerInput struct {
 
 type HTTPHandler struct {
 	Chi           *chi.Mux
-	Mux           *http.ServeMux
 	Authenticator *FirebaseAuthenticator
 	Repository    *DynamoRepository
 	Secure        bool
@@ -31,7 +30,6 @@ type HTTPHandler struct {
 
 func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 	h := &HTTPHandler{
-		Mux:           http.NewServeMux(),
 		Authenticator: in.Authenticator,
 		Repository:    in.Repository,
 		Secure:        in.Secure,
