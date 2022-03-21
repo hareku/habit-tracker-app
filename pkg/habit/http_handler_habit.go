@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"unicode/utf8"
 
 	"firebase.google.com/go/auth"
 	"github.com/go-chi/chi/v5"
@@ -61,8 +62,9 @@ func (h *HTTPHandler) createHabit(w http.ResponseWriter, r *http.Request) {
 	uid := MustGetUserID(ctx)
 
 	title := r.PostFormValue("title")
-	if title == "" {
-		http.Error(w, http.StatusText(http.StatusUnprocessableEntity), http.StatusUnprocessableEntity)
+	cnt := utf8.RuneCountInString(title)
+	if cnt == 0 || cnt > 50 {
+		http.Error(w, "Habit title length must be less than 50", http.StatusUnprocessableEntity)
 		return
 	}
 
