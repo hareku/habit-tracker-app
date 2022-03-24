@@ -11,34 +11,37 @@
 {{end}}
 {{end}}
 
-<h2>Create Habit</h2>
-<form action="/habits" method="post">
-  {{ .CSRFHiddenInput }}
-  <input type="text" name="title" placeholder="habit title" required>
-  <input type="submit" value="create">
-</form>
+<details>
+  <summary>Actions:</summary>
 
-{{if .Habits}}
-<h2>Delete Habit</h2>
-<form action="/delete-habit" method="post" onsubmit="return window.confirm('Delete habit?')">
-  {{ .CSRFHiddenInput }}
-  <select name="habit_uuid">
-    {{range .Habits}}
-      <option value="{{.UUID}}">{{.Title}}</option>
-    {{end}}
-  </select>
-  <input type="submit" value="delete">
-</form>
-{{end}}
+  <h2>Create Habit</h2>
+  <form action="/habits" method="post">
+    {{ .CSRFHiddenInput }}
+    <input type="text" name="title" placeholder="habit title" required>
+    <input type="submit" value="create">
+  </form>
 
-<h2>Account</h2>
-
-<form action="/logout" method="post" onsubmit="return window.confirm('Logout?')">
-  {{ .CSRFHiddenInput }}
-  <input type="submit" value="logout">
-</form>
-<form action="/delete-account" method="post" onsubmit="return window.confirm('Delete account?')">
-  {{ .CSRFHiddenInput }}
-  <input type="submit" value="delete account">
-</form>
+  {{if .Habits}}
+  <h2>Delete Habit</h2>
+  <form action="/delete-habit" method="post" onsubmit="return window.confirm('Delete habit?')">
+    {{ .CSRFHiddenInput }}
+    <select name="habit_uuid">
+      {{range .Habits}}
+        <option value="{{.UUID}}">{{.Title}}</option>
+      {{end}}
+    </select>
+    <input type="submit" value="delete">
+  </form>
+  {{end}}
+  
+  <h2>Account</h2>
+  <form action="/logout" method="post" onsubmit="return window.confirm('Logout?')">
+    {{ .CSRFHiddenInput }}
+    <input type="submit" value="logout">
+  </form>
+  <form action="/delete-account" method="post" onsubmit="return window.confirm('Delete account?')">
+    {{ .CSRFHiddenInput }}
+    <input type="submit" value="delete account">
+  </form>
+</details>
 {{end}}
