@@ -56,6 +56,7 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 		r.Post("/habits", h.createHabit)
 		r.Post("/checks", h.createCheck)
 		r.Post("/archive-habit", h.archiveHabit)
+		r.Post("/unarchive-habit", h.unarchiveHabit)
 		r.Post("/delete-habit", h.deleteHabit)
 		r.Post("/delete-check", h.deleteCheck)
 		r.Post("/logout", h.logout)

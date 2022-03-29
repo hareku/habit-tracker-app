@@ -59,11 +59,16 @@
 {{if .ArchivedHabits}}
 <details>
   <summary>Archived Habits</summary>
-  <ul>
-    {{range .ArchivedHabits}}
-      <li>{{.Title}} ({{.ChecksCount}})</li>
-    {{end}}
-  </ul>
+
+  <form action="/unarchive-habit" method="post" onsubmit="return window.confirm('Unarchive habit?')">
+    {{ .CSRFHiddenInput }}
+    <select name="habit_uuid">
+      {{range .ArchivedHabits}}
+        <option value="{{.UUID}}">{{.Title}} ({{.ChecksCount}})</option>
+      {{end}}
+    </select>
+    <input type="submit" value="unarchive">
+  </form>
 </details>
 {{end}}
 {{end}}

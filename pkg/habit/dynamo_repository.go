@@ -73,6 +73,18 @@ func (r *DynamoRepository) FindHabit(ctx context.Context, uid UserID, hid uuid.U
 	return habit, nil
 }
 
+func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
+	var habit *DynamoHabit
+	err := r.Table.Get("PK", fmt.Sprintf("USER#%s", uid)).
+		Range("SK", dynamo.Equal, fmt.Sprintf("ARCHIVED_HABITS#%s", hid)).
+		OneWithContext(ctx, &habit)
+	if err != nil {
+		return nil, fmt.Errorf("dynamo: %w", err)
+	}
+
+	return habit, nil
+}
+
 func (r *DynamoRepository) CreateHabit(ctx context.Context, uid UserID, title string) (*DynamoHabit, error) {
 	id := uuid.New()
 	now := time.Now()
@@ -115,6 +127,27 @@ func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid UserID, hid uui
 		Range("SK", h.SK)
 
 	h.SK = fmt.Sprintf("ARCHIVED_HABITS#%s", hid)
+	h.UpdatedAt = time.Now()
+	put := r.Table.Put(h)
+
+	if err := r.DB.WriteTx().Delete(delete).Put(put).RunWithContext(ctx); err != nil {
+		return nil, fmt.Errorf("dynamo: %w", err)
+	}
+
+	return h, nil
+}
+
+func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
+	h, err := r.FindArchivedHabit(ctx, uid, hid)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find a habit [%s]: %w", hid, err)
+	}
+
+	delete := r.Table.Delete("PK", h.PK).
+		Range("SK", h.SK)
+
+	h.SK = fmt.Sprintf("HABITS#%s", hid)
+	h.UpdatedAt = time.Now()
 	put := r.Table.Put(h)
 
 	if err := r.DB.WriteTx().Delete(delete).Put(put).RunWithContext(ctx); err != nil {
