@@ -55,6 +55,7 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 		r.Get("/habits/{habitUUID}", h.showHabitPage)
 		r.Post("/habits", h.createHabit)
 		r.Post("/checks", h.createCheck)
+		r.Post("/archive-habit", h.archiveHabit)
 		r.Post("/delete-habit", h.deleteHabit)
 		r.Post("/delete-check", h.deleteCheck)
 		r.Post("/logout", h.logout)

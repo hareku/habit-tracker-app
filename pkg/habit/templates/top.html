@@ -12,7 +12,7 @@
 {{end}}
 
 <details>
-  <summary>Actions:</summary>
+  <summary>Actions</summary>
 
   <h2>Create Habit</h2>
   <form action="/habits" method="post">
@@ -22,6 +22,17 @@
   </form>
 
   {{if .Habits}}
+  <h2>Archive Habit</h2>
+  <form action="/archive-habit" method="post" onsubmit="return window.confirm('Archive habit?')">
+    {{ .CSRFHiddenInput }}
+    <select name="habit_uuid">
+      {{range .Habits}}
+        <option value="{{.UUID}}">{{.Title}}</option>
+      {{end}}
+    </select>
+    <input type="submit" value="archive">
+  </form>
+
   <h2>Delete Habit</h2>
   <form action="/delete-habit" method="post" onsubmit="return window.confirm('Delete habit?')">
     {{ .CSRFHiddenInput }}
@@ -44,4 +55,15 @@
     <input type="submit" value="delete account">
   </form>
 </details>
+
+{{if .ArchivedHabits}}
+<details>
+  <summary>Archived Habits</summary>
+  {{range .ArchivedHabits}}
+    <h3>
+      <a href="/habits/{{.UUID}}">{{.Title}} ({{.ChecksCount}})</a>
+    </h3>
+  {{end}}
+</details>
+{{end}}
 {{end}}

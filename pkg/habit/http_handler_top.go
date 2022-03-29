@@ -23,6 +23,11 @@ func (h *HTTPHandler) showTopPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+	archivedHabits, err := h.Repository.AllArchivedHabits(ctx, uid)
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
 
 	checks, err := h.Repository.ListLastWeekChecks(ctx, uid)
 	if err != nil {
@@ -46,10 +51,12 @@ func (h *HTTPHandler) showTopPage(w http.ResponseWriter, r *http.Request) {
 		CSRFHiddenInput template.HTML
 		User            *auth.UserInfo
 		Habits          []*DynamoHabit
+		ArchivedHabits  []*DynamoHabit
 	}{
 		CSRFHiddenInput: csrf.TemplateField(r),
 		User:            userRec.UserInfo,
 		Habits:          habits,
+		ArchivedHabits:  archivedHabits,
 	}); err != nil {
 		log.Printf("Failed to write index page: %s", err)
 	}
