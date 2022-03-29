@@ -59,11 +59,11 @@
 {{if .ArchivedHabits}}
 <details>
   <summary>Archived Habits</summary>
-  {{range .ArchivedHabits}}
-    <h3>
-      <a href="/habits/{{.UUID}}">{{.Title}} ({{.ChecksCount}})</a>
-    </h3>
-  {{end}}
+  <ul>
+    {{range .ArchivedHabits}}
+      <li>{{.Title}} ({{.ChecksCount}})</li>
+    {{end}}
+  </ul>
 </details>
 {{end}}
 {{end}}
