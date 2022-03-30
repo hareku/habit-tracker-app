@@ -11,10 +11,12 @@
 {{end}}
 {{end}}
 
-<details>
-  <summary>Actions</summary>
+<h2>Actions</h2>
 
-  <h2>Create Habit</h2>
+<details>
+  <summary>Manage Habits</summary>
+
+  <h3>Create Habit</h3>
   <form action="/habits" method="post">
     {{ .CSRFHiddenInput }}
     <input type="text" name="title" placeholder="habit title" required>
@@ -22,7 +24,7 @@
   </form>
 
   {{if .Habits}}
-  <h2>Archive Habit</h2>
+  <h3>Archive Habit</h3>
   <form action="/archive-habit" method="post" onsubmit="return window.confirm('Archive habit?')">
     {{ .CSRFHiddenInput }}
     <select name="habit_uuid">
@@ -33,7 +35,7 @@
     <input type="submit" value="archive">
   </form>
 
-  <h2>Delete Habit</h2>
+  <h3>Delete Habit</h3>
   <form action="/delete-habit" method="post" onsubmit="return window.confirm('Delete habit?')">
     {{ .CSRFHiddenInput }}
     <select name="habit_uuid">
@@ -44,16 +46,6 @@
     <input type="submit" value="delete">
   </form>
   {{end}}
-  
-  <h2>Account</h2>
-  <form action="/logout" method="post" onsubmit="return window.confirm('Logout?')">
-    {{ .CSRFHiddenInput }}
-    <input type="submit" value="logout">
-  </form>
-  <form action="/delete-account" method="post" onsubmit="return window.confirm('Delete account?')">
-    {{ .CSRFHiddenInput }}
-    <input type="submit" value="delete account">
-  </form>
 </details>
 
 {{if .ArchivedHabits}}
@@ -71,4 +63,16 @@
   </form>
 </details>
 {{end}}
+
+<details>
+  <summary>Account</summary>
+  <form action="/logout" method="post" onsubmit="return window.confirm('Logout?')">
+    {{ .CSRFHiddenInput }}
+    <input type="submit" value="logout">
+  </form>
+  <form action="/delete-account" method="post" onsubmit="return window.confirm('Delete account?')">
+    {{ .CSRFHiddenInput }}
+    <input type="submit" value="delete account">
+  </form>
+</details>
 {{end}}
