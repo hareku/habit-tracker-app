@@ -78,6 +78,31 @@ func (h *HTTPHandler) createHabit(w http.ResponseWriter, r *http.Request) {
 	h.redirect(w, fmt.Sprintf("/habits/%s", habit.UUID))
 }
 
+func (h *HTTPHandler) updateHabit(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	in := DynamoRepositoryUpdateHabitInput{
+		UserID:    MustGetUserID(ctx),
+		HabitUUID: uuid.MustParse(r.PostFormValue("habit_uuid")),
+	}
+
+	title := r.PostFormValue("title")
+	cnt := utf8.RuneCountInString(title)
+	if cnt == 0 || cnt > 50 {
+		http.Error(w, "Habit title length must be less than 50", http.StatusUnprocessableEntity)
+		return
+	}
+	in.Title = title
+
+	if err := h.Repository.UpdateHabit(ctx, &in); err != nil {
+		log.Printf("Failed to update a habit: %s", err)
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	h.redirect(w, fmt.Sprintf("/habits/%s", in.HabitUUID))
+}
+
 func (h *HTTPHandler) deleteHabit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	uid := MustGetUserID(ctx)

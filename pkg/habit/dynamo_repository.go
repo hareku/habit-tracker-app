@@ -137,6 +137,19 @@ func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid UserID, hid uui
 	return h, nil
 }
 
+type DynamoRepositoryUpdateHabitInput struct {
+	UserID    UserID
+	HabitUUID uuid.UUID
+	Title     string
+}
+
+func (r *DynamoRepository) UpdateHabit(ctx context.Context, in *DynamoRepositoryUpdateHabitInput) error {
+	return r.Table.Update("PK", fmt.Sprintf("USER#%s", in.UserID)).
+		Range("SK", fmt.Sprintf("HABITS#%s", in.HabitUUID)).
+		Set("Title", in.Title).
+		RunWithContext(ctx)
+}
+
 func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
 	h, err := r.FindArchivedHabit(ctx, uid, hid)
 	if err != nil {

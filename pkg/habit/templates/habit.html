@@ -11,6 +11,14 @@
   <input type="submit" value="check">
 </form>
 
+<h2>Rename</h2>
+<form action="/update-habit" method="post" onsubmit="return window.confirm('Rename?')">
+  {{ $.CSRFHiddenInput }}
+  <input type="hidden" name="habit_uuid" value="{{$.Habit.UUID}}">
+  <input type="value" name="title" value="{{$.Habit.Title}}">
+  <input type="submit" value="rename">
+</form>
+
 <h2>Checks</h2>
 {{range .Checks}}
   <div>
