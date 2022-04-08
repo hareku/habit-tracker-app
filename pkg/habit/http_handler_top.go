@@ -4,6 +4,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"sort"
 
 	"firebase.google.com/go/auth"
 	"github.com/gorilla/csrf"
@@ -23,6 +24,10 @@ func (h *HTTPHandler) showTopPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
+	sort.Slice(habits, func(i, j int) bool {
+		return habits[i].CreatedAt.UnixNano() > habits[j].CreatedAt.UnixNano()
+	})
+
 	archivedHabits, err := h.Repository.AllArchivedHabits(ctx, uid)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
