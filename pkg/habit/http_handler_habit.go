@@ -5,6 +5,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"time"
 	"unicode/utf8"
 
 	"firebase.google.com/go/auth"
@@ -47,11 +48,20 @@ func (h *HTTPHandler) showHabitPage(w http.ResponseWriter, r *http.Request) {
 		User            *auth.UserInfo
 		Habit           *DynamoHabit
 		Checks          []*DynamoCheck
+		NextCheckDate   string
 	}{
 		CSRFHiddenInput: csrf.TemplateField(r),
 		User:            userRec.UserInfo,
 		Habit:           habit,
 		Checks:          checks,
+		NextCheckDate: func() string {
+			if len(checks) == 0 {
+				return ""
+			}
+
+			latest, _ := time.Parse("2006-01-02", checks[0].Date)
+			return latest.Add(24 * time.Hour).Format("2006-01-02")
+		}(),
 	}); err != nil {
 		log.Printf("Failed to write habit page: %s", err)
 	}
