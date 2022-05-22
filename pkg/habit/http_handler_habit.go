@@ -35,7 +35,7 @@ func (h *HTTPHandler) showHabitPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
-	checks, err := h.Repository.ListChecks(ctx, uid, hid)
+	checks, err := h.Repository.ListLatestChecksWithLimit(ctx, uid, hid, 7)
 	if err != nil {
 		log.Printf("Failed to list checks of habit[%s]: %s", hid, err)
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)

@@ -183,7 +183,23 @@ func (r *DynamoRepository) ListChecks(ctx context.Context, uid UserID, hid uuid.
 	return checks, nil
 }
 
-func (r *DynamoRepository) ListLastWeekChecks(ctx context.Context, uid UserID) ([]*DynamoCheck, error) {
+func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid UserID, hid uuid.UUID, limit int64) ([]*DynamoCheck, error) {
+	var checks []*DynamoCheck
+	err := r.Table.Get("PK", fmt.Sprintf("USER#%s", uid)).
+		Range("SK",
+			dynamo.BeginsWith,
+			fmt.Sprintf("HABIT#%s__CHECK_DATE#", hid)).
+		Order(dynamo.Descending).
+		Limit(limit).
+		AllWithContext(ctx, &checks)
+	if err != nil {
+		return nil, fmt.Errorf("dynamo: %w", err)
+	}
+
+	return checks, nil
+}
+
+func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, uid UserID) ([]*DynamoCheck, error) {
 	var checks []*DynamoCheck
 	err := r.Table.Get("PK", fmt.Sprintf("USER#%s", uid)).
 		Range("CheckDateLSISK",

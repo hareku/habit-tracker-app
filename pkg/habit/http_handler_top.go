@@ -34,7 +34,7 @@ func (h *HTTPHandler) showTopPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	checks, err := h.Repository.ListLastWeekChecks(ctx, uid)
+	checks, err := h.Repository.ListLastWeekChecksInAllHabits(ctx, uid)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return

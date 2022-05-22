@@ -19,16 +19,17 @@
   <input type="submit" value="rename">
 </form>
 
-<h2>Checks</h2>
-{{range .Checks}}
-  <div>
-    <h3>{{.Date}}</h3>
-    <form action="/delete-check" method="post" onsubmit="return window.confirm('Delete {{.Date}}?')">
-      {{ $.CSRFHiddenInput }}
-      <input type="hidden" name="habit_uuid" value="{{$.Habit.UUID}}">
-      <input type="hidden" name="date" value="{{.Date}}">
-      <input type="submit" value="uncheck">
-    </form>
-  </div>
+{{if .Checks}}
+<h2>Uncheck last {{len .Checks}} checks</h2>
+<form action="/delete-check" method="post" onsubmit="return window.confirm('Uncheck?')">
+  {{ .CSRFHiddenInput }}
+  <input type="hidden" name="habit_uuid" value="{{$.Habit.UUID}}">
+  <select name="date">
+    {{range .Checks}}
+      <option value="{{.Date}}">{{.Date}}</option>
+    {{end}}
+  </select>
+  <input type="submit" value="uncheck">
+</form>
 {{end}}
 {{end}}
