@@ -30,7 +30,7 @@ func (h *HTTPHandler) createCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.redirect(w, fmt.Sprintf("/habits/%s", hid))
+	h.redirect(w, "/")
 }
 
 func (h *HTTPHandler) deleteCheck(w http.ResponseWriter, r *http.Request) {
