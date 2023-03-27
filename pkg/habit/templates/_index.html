@@ -10,7 +10,9 @@
   </head>
   <body>
     <main>
-      <h1>{{template "title" .}}</h1>
+      <h1>
+        <a href="/">{{template "title" .}}</a>
+      </h1>
       {{block "body" .}}{{end}}
     </main>
   </body>

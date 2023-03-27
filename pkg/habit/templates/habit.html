@@ -1,9 +1,5 @@
 {{define "body"}}
-<p>Hello, <b>{{.User.DisplayName}}</b></p>
-<h2>Habit: <b>{{.Habit.Title}}</b></h2>
-<p><a href="/">Back to habits</a></p>
-
-<h2>Check from here</h2>
+<h2><b>{{.Habit.Title}}</b></h2>
 <form action="/checks" method="post">
   {{ .CSRFHiddenInput }}
   <input type="hidden" name="habit_uuid" value="{{.Habit.UUID}}">
