@@ -13,7 +13,7 @@
 
 <h2>Rename</h2>
 <form action="/update-habit" method="post" onsubmit="return window.confirm('Rename?')">
-  {{ $.CSRFHiddenInput }}
+  {{ .CSRFHiddenInput }}
   <input type="hidden" name="habit_uuid" value="{{$.Habit.UUID}}">
   <input type="value" name="title" value="{{$.Habit.Title}}">
   <input type="submit" value="rename">
@@ -23,7 +23,7 @@
 <h2>Uncheck last {{len .Checks}} checks</h2>
 <form action="/delete-check" method="post" onsubmit="return window.confirm('Uncheck?')">
   {{ .CSRFHiddenInput }}
-  <input type="hidden" name="habit_uuid" value="{{$.Habit.UUID}}">
+  <input type="hidden" name="habit_uuid" value="{{.Habit.UUID}}">
   <select name="date">
     {{range .Checks}}
       <option value="{{.Date}}">{{.Date}}</option>

@@ -1,16 +1,17 @@
-{{define "title"}}Habit Tracker App{{end}}{{define "head"}}{{end}}{{define "body"}}{{end}}
+{{define "title"}}Habit Tracker App{{end}}
 <!DOCTYPE html>
 <html>
   <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{template "title" .}}</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
-    {{template "head" .}}
+    {{block "head" .}}{{end}}
   </head>
   <body>
     <main>
       <h1>{{template "title" .}}</h1>
-      {{template "body" .}}
+      {{block "body" .}}{{end}}
     </main>
   </body>
 </html>

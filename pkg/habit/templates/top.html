@@ -3,12 +3,29 @@
 
 {{if .Habits}}
 <h2>Your Habits</h2>
-{{range .Habits}}
-  <h3>
-    <a href="/habits/{{.UUID}}">{{.Title}} ({{.ChecksCount}})</a>
-    {{if .LatestCheck}}<span>{{.LatestCheck.Date}}</span>{{else}}<span>No record in the past week</span>{{end}}
-  </h3>
-{{end}}
+
+<table>
+  <thead>
+    <tr>
+      <th>Title</th>
+      <th>LastCheckedAt</th>
+      <th>ChecksCount</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{range .Habits}}
+    <tr>
+        <th>
+          <a href="/habits/{{.UUID}}">{{.Title}}</a>
+        </th>
+        <th>
+          {{if .LatestCheck}}<span>{{.LatestCheck.Date}}</span>{{else}}<span>No record in the past week</span>{{end}}
+        </th>
+        <th>{{.ChecksCount}}</th>
+    </tr>
+      {{end}}
+  </tbody>
+</table>
 {{end}}
 
 <h2>Actions</h2>
