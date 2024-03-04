@@ -2,16 +2,17 @@ version: '3'
 
 services:
   dynamodb:
-    image: amazon/dynamodb-local:1.18.0
-    command: -jar DynamoDBLocal.jar -dbPath /var/dynamodb -sharedDb
+    image: amazon/dynamodb-local:2.2.1
+    command: -jar DynamoDBLocal.jar -sharedDb -dbPath ./data
+    working_dir: /home/dynamodblocal
     volumes:
-    - .dynamodb:/var/dynamodb
+      - ./.dynamodb:/home/dynamodblocal/data
     expose:
       - 8000
     ports:
       - 8000:8000
   dynamodb-admin:
-    image: aaronshaf/dynamodb-admin:4.3.1
+    image: aaronshaf/dynamodb-admin:4.6.1
     expose:
       - 8001
     ports:
