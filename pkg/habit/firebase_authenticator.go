@@ -31,7 +31,7 @@ func NewFirebaseAuthenticator(cred []byte) (*FirebaseAuthenticator, error) {
 func (f *FirebaseAuthenticator) Authenticate(ctx context.Context, session string) (context.Context, error) {
 	tk, err := f.client.VerifySessionCookieAndCheckRevoked(ctx, session)
 	if err != nil {
-		return nil, fmt.Errorf("failed to verify session cookie: %w", err)
+		return nil, fmt.Errorf("verify session cookie: %w", err)
 	}
 
 	return SetUserID(ctx, UserID(tk.UID)), nil

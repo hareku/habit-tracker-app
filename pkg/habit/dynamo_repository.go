@@ -120,7 +120,7 @@ func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid UserID, hid uuid
 func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
 	h, err := r.FindHabit(ctx, uid, hid)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find a habit [%s]: %w", hid, err)
+		return nil, fmt.Errorf("find a habit [%s]: %w", hid, err)
 	}
 
 	delete := r.Table.Delete("PK", h.PK).
@@ -153,7 +153,7 @@ func (r *DynamoRepository) UpdateHabit(ctx context.Context, in *DynamoRepository
 func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
 	h, err := r.FindArchivedHabit(ctx, uid, hid)
 	if err != nil {
-		return nil, fmt.Errorf("failed to find a habit [%s]: %w", hid, err)
+		return nil, fmt.Errorf("find a habit [%s]: %w", hid, err)
 	}
 
 	delete := r.Table.Delete("PK", h.PK).

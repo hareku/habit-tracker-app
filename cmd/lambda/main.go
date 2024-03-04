@@ -26,12 +26,12 @@ var handler *habit.HTTPHandler
 func init() {
 	fa, err := habit.NewFirebaseAuthenticator(googleCred)
 	if err != nil {
-		panic(fmt.Errorf("failed to init firebase authenticator: %w", err))
+		panic(fmt.Errorf("init firebase authenticator: %w", err))
 	}
 
 	secure, err := strconv.ParseBool(os.Getenv("SECURE"))
 	if err != nil {
-		panic(fmt.Errorf("failed to parse str as bool: %w", err))
+		panic(fmt.Errorf("parse str as bool: %w", err))
 	}
 	log.Printf("[config] secure is %+v", secure)
 

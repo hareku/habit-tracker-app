@@ -22,11 +22,11 @@ func run(name string) error {
 	if _, err := os.Stat(name); err != nil && os.IsNotExist(err) {
 		f, err := os.Create(name)
 		if err != nil {
-			return fmt.Errorf("failed to create a file: %w", err)
+			return fmt.Errorf("create a file: %w", err)
 		}
 		defer f.Close()
 		if _, err := f.Write(securecookie.GenerateRandomKey(64)); err != nil {
-			return fmt.Errorf("failed to write key: %w", err)
+			return fmt.Errorf("write key: %w", err)
 		}
 	}
 	return nil
