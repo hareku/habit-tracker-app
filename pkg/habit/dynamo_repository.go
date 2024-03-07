@@ -13,6 +13,8 @@ import (
 	"github.com/google/uuid"
 )
 
+var ErrNotFound = fmt.Errorf("not found")
+
 type DynamoRepository struct {
 	Client    *dynamodb.Client
 	TableName string
@@ -29,6 +31,15 @@ type DynamoHabit struct {
 	UpdatedAt   time.Time
 
 	LatestCheck *DynamoCheck
+}
+
+func NewDynamoHabit(userID UserID, habitUUID uuid.UUID) *DynamoHabit {
+	return &DynamoHabit{
+		PK:     fmt.Sprintf("USER#%s", userID),
+		SK:     fmt.Sprintf("HABITS#%s", habitUUID),
+		UserID: userID,
+		UUID:   habitUUID.String(),
+	}
 }
 
 // GetKey returns the composite primary key of the movie in a format that can be
@@ -192,18 +203,13 @@ func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid UserID, hi
 }
 
 func (r *DynamoRepository) CreateHabit(ctx context.Context, uid UserID, title string) (*DynamoHabit, error) {
-	id := uuid.New()
 	now := time.Now().UTC()
 
-	h := &DynamoHabit{
-		PK:        fmt.Sprintf("USER#%s", uid),
-		SK:        fmt.Sprintf("HABITS#%s", id),
-		UUID:      id.String(),
-		UserID:    uid,
-		Title:     title,
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
+	h := NewDynamoHabit(uid, uuid.New())
+	h.Title = title
+	h.CreatedAt = now
+	h.UpdatedAt = now
+
 	item, err := attributevalue.MarshalMap(h)
 	if err != nil {
 		return nil, fmt.Errorf("marshal habit: %w", err)
@@ -220,14 +226,9 @@ func (r *DynamoRepository) CreateHabit(ctx context.Context, uid UserID, title st
 }
 
 func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid UserID, hid uuid.UUID) error {
-	h := &DynamoHabit{
-		PK: fmt.Sprintf("USER#%s", uid),
-		SK: fmt.Sprintf("HABITS#%s", hid),
-	}
-
 	if _, err := r.Client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
 		TableName: &r.TableName,
-		Key:       h.GetKey(),
+		Key:       NewDynamoHabit(uid, hid).GetKey(),
 	}); err != nil {
 		return fmt.Errorf("delete item: %w", err)
 	}
@@ -277,10 +278,7 @@ type DynamoRepositoryUpdateHabitInput struct {
 }
 
 func (r *DynamoRepository) UpdateHabit(ctx context.Context, in *DynamoRepositoryUpdateHabitInput) error {
-	h := &DynamoHabit{
-		PK: fmt.Sprintf("USER#%s", in.UserID),
-		SK: fmt.Sprintf("HABITS#%s", in.HabitUUID),
-	}
+	h := NewDynamoHabit(in.UserID, in.HabitUUID)
 
 	update := expression.Set(expression.Name("Title"), expression.Value(in.Title))
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
@@ -429,10 +427,7 @@ func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid
 		return nil, fmt.Errorf("marshal check: %w", err)
 	}
 
-	h := &DynamoHabit{
-		PK: fmt.Sprintf("USER#%s", uid),
-		SK: fmt.Sprintf("HABITS#%s", hid),
-	}
+	h := NewDynamoHabit(uid, hid)
 
 	update := expression.Set(expression.Name("ChecksCount"), expression.Name("ChecksCount").Plus(expression.Value(1)))
 	updateExpr, err := expression.NewBuilder().WithUpdate(update).Build()
@@ -469,10 +464,7 @@ func (r *DynamoRepository) DeleteCheck(ctx context.Context, uid UserID, hid uuid
 		PK: fmt.Sprintf("USER#%s", uid),
 		SK: fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", hid, date),
 	}
-	h := &DynamoHabit{
-		PK: fmt.Sprintf("USER#%s", uid),
-		SK: fmt.Sprintf("HABITS#%s", hid),
-	}
+	h := NewDynamoHabit(uid, hid)
 
 	update := expression.Set(expression.Name("ChecksCount"), expression.Name("ChecksCount").Plus(expression.Value(-1)))
 	updateExpr, err := expression.NewBuilder().WithUpdate(update).Build()

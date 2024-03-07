@@ -3,12 +3,15 @@ package habit
 import (
 	"context"
 	"encoding/json"
+	"sort"
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/google/uuid"
 	"github.com/hareku/habit-tracker-app/dynamoconf"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -43,7 +46,7 @@ func newDynamoRepositoryTest(t *testing.T) *DynamoRepository {
 	}
 }
 
-func TestHello(t *testing.T) {
+func Test_AllHabits(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
 	ctx := context.Background()
 
@@ -52,13 +55,56 @@ func TestHello(t *testing.T) {
 
 	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
 	require.NoError(t, err)
+	h2, err := repo.CreateHabit(ctx, myUserID, "Habit2")
+	require.NoError(t, err)
 
-	_, err = repo.CreateHabit(ctx, otherUserID, "Habit2")
+	_, err = repo.CreateHabit(ctx, otherUserID, "Habit3")
 	require.NoError(t, err)
 
 	got, err := repo.AllHabits(ctx, myUserID)
 	require.NoError(t, err)
-	require.Equal(t, 1, len(got))
+	require.Equal(t, 2, len(got))
 
-	require.Equal(t, h1, got[0])
+	sort.Slice(got, func(i, j int) bool {
+		return got[i].Title < got[j].Title
+	})
+	assert.Equal(t, []*DynamoHabit{h1, h2}, got)
+}
+
+func Test_FindHabit(t *testing.T) {
+	repo := newDynamoRepositoryTest(t)
+	ctx := context.Background()
+
+	myUserID := UserID("MyUserID")
+
+	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
+	require.NoError(t, err)
+	_, err = repo.CreateHabit(ctx, myUserID, "Habit2")
+	require.NoError(t, err)
+
+	got, err := repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
+	require.NoError(t, err)
+	assert.Equal(t, h1, got)
+}
+
+func Test_DeleteHabit(t *testing.T) {
+	repo := newDynamoRepositoryTest(t)
+	ctx := context.Background()
+
+	myUserID := UserID("MyUserID")
+
+	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
+	require.NoError(t, err)
+	h2, err := repo.CreateHabit(ctx, myUserID, "Habit2")
+	require.NoError(t, err)
+
+	require.NoError(t, repo.DeleteHabit(ctx, myUserID, uuid.MustParse(h1.UUID)))
+
+	got1, err := repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
+	require.Error(t, err, "Got habit1: %v", got1)
+	require.ErrorIs(t, err, ErrNotFound)
+
+	got2, err := repo.FindHabit(ctx, myUserID, uuid.MustParse(h2.UUID))
+	require.NoError(t, err)
+	assert.Equal(t, h2, got2)
 }
