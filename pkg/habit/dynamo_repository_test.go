@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -16,6 +17,8 @@ import (
 )
 
 func newDynamoRepositoryTest(t *testing.T) *DynamoRepository {
+	time.Local = nil
+
 	ctx := context.Background()
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -126,9 +129,11 @@ func Test_ListLatestChecksWithLimit(t *testing.T) {
 
 	got1, err := repo.ListLatestChecksWithLimit(ctx, myUserID, uuid.MustParse(h1.UUID), 1)
 	require.NoError(t, err)
-	assert.Equal(t, []*DynamoCheck{c2}, got1)
+	require.Len(t, got1, 1)
+	require.Equal(t, []*DynamoCheck{c2}, got1)
 
 	got2, err := repo.ListLatestChecksWithLimit(ctx, myUserID, uuid.MustParse(h1.UUID), 2)
 	require.NoError(t, err)
-	assert.Equal(t, []*DynamoCheck{c2, c1}, got2)
+	require.Len(t, got2, 2)
+	require.Equal(t, []*DynamoCheck{c2, c1}, got2)
 }

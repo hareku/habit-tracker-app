@@ -54,11 +54,6 @@ func (h *DynamoHabit) GetKey() map[string]types.AttributeValue {
 	return map[string]types.AttributeValue{"PK": pk, "SK": sk}
 }
 
-func (h *DynamoHabit) beforeReturn() {
-	h.CreatedAt = h.CreatedAt.UTC()
-	h.UpdatedAt = h.UpdatedAt.UTC()
-}
-
 type DynamoCheck struct {
 	PK             string
 	SK             string
@@ -77,11 +72,6 @@ func NewDynamoCheck(userID UserID, habitUUID uuid.UUID, date string) *DynamoChec
 		HabitUUID:      habitUUID.String(),
 		Date:           date,
 	}
-}
-
-func (h *DynamoCheck) beforeReturn() {
-	h.CreatedAt = h.CreatedAt.UTC()
-	h.UpdatedAt = h.UpdatedAt.UTC()
 }
 
 // GetKey returns the composite primary key of the movie in a format that can be
@@ -130,9 +120,6 @@ func (r *DynamoRepository) AllHabits(ctx context.Context, uid UserID) ([]*Dynamo
 		habits = append(habits, pageItems...)
 	}
 
-	for _, h := range habits {
-		h.beforeReturn()
-	}
 	return habits, nil
 }
 
@@ -168,9 +155,6 @@ func (r *DynamoRepository) AllArchivedHabits(ctx context.Context, uid UserID) ([
 		habits = append(habits, pageItems...)
 	}
 
-	for _, h := range habits {
-		h.beforeReturn()
-	}
 	return habits, nil
 }
 
@@ -204,7 +188,6 @@ func (r *DynamoRepository) FindHabit(ctx context.Context, uid UserID, hid uuid.U
 			return nil, fmt.Errorf("unmarshal items: %w", err)
 		}
 		if len(pageItems) == 1 {
-			pageItems[0].beforeReturn()
 			return pageItems[0], nil
 		}
 	}
@@ -231,25 +214,27 @@ func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid UserID, hi
 }
 
 func (r *DynamoRepository) CreateHabit(ctx context.Context, uid UserID, title string) (*DynamoHabit, error) {
-	now := time.Now().UTC()
-
 	h := NewDynamoHabit(uid, uuid.New())
 	h.Title = title
-	h.CreatedAt = now
-	h.UpdatedAt = now
+	h.CreatedAt = time.Now().Round(time.Nanosecond)
+	h.UpdatedAt = h.CreatedAt
 
 	item, err := attributevalue.MarshalMap(h)
 	if err != nil {
 		return nil, fmt.Errorf("marshal habit: %w", err)
 	}
-	if _, err := r.Client.PutItem(ctx, &dynamodb.PutItemInput{
+	resp, err := r.Client.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName: &r.TableName,
 		Item:      item,
-	}); err != nil {
+	})
+	if err != nil {
 		return nil, fmt.Errorf("put item: %w", err)
 	}
 
-	h.beforeReturn()
+	if err := attributevalue.UnmarshalMap(resp.Attributes, &h); err != nil {
+		return nil, fmt.Errorf("unmarshal item: %w", err)
+	}
+
 	return h, nil
 }
 
@@ -296,7 +281,6 @@ func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid UserID, hid uui
 		return nil, fmt.Errorf("transact write items: %w", err)
 	}
 
-	h.beforeReturn()
 	return h, nil
 }
 
@@ -361,7 +345,6 @@ func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid UserID, hid u
 		return nil, fmt.Errorf("transact write items: %w", err)
 	}
 
-	h.beforeReturn()
 	return h, nil
 }
 
@@ -376,7 +359,6 @@ func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid Us
 		return nil, fmt.Errorf("build expression: %w", err)
 	}
 
-	var checks []*DynamoCheck
 	paginator := dynamodb.NewQueryPaginator(r.Client, &dynamodb.QueryInput{
 		TableName:                 &r.TableName,
 		ExpressionAttributeNames:  expr.Names(),
@@ -386,27 +368,20 @@ func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid Us
 		Limit:                     &limit,
 		ScanIndexForward:          aws.Bool(false),
 	})
-	for paginator.HasMorePages() {
-		resp, err := paginator.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("query paginator: %w", err)
-		}
 
-		var pageItems []*DynamoCheck
-		if err := attributevalue.UnmarshalListOfMapsWithOptions(resp.Items, &pageItems); err != nil {
-			return nil, fmt.Errorf("unmarshal items: %w", err)
-		}
-		checks = append(checks, pageItems...)
+	resp, err := paginator.NextPage(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("query paginator: %w", err)
 	}
-
-	for _, c := range checks {
-		c.beforeReturn()
+	var pageItems []*DynamoCheck
+	if err := attributevalue.UnmarshalListOfMapsWithOptions(resp.Items, &pageItems); err != nil {
+		return nil, fmt.Errorf("unmarshal items: %w", err)
 	}
-	return checks, nil
+	return pageItems, nil
 }
 
 func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, uid UserID) ([]*DynamoCheck, error) {
-	minTime := time.Now().Add(time.Hour * 24 * 7 * -1).UTC().Format("2006-01-02")
+	minTime := time.Now().Add(time.Hour * 24 * 7 * -1).Format("2006-01-02")
 
 	expr, err := expression.NewBuilder().
 		WithKeyCondition(
@@ -442,17 +417,13 @@ func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, ui
 		checks = append(checks, pageItems...)
 	}
 
-	for _, c := range checks {
-		c.beforeReturn()
-	}
 	return checks, nil
 }
 
 func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid.UUID, date string) (*DynamoCheck, error) {
-	now := time.Now()
 	c := NewDynamoCheck(uid, hid, date)
-	c.CreatedAt = now
-	c.UpdatedAt = now
+	c.CreatedAt = time.Now().Round(time.Nanosecond)
+	c.UpdatedAt = c.CreatedAt
 
 	item, err := attributevalue.MarshalMap(c)
 	if err != nil {
@@ -489,7 +460,6 @@ func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid
 		return nil, fmt.Errorf("transact write items: %w", err)
 	}
 
-	c.beforeReturn()
 	return c, nil
 }
 
