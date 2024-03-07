@@ -5,115 +5,247 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
+	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
-	"github.com/guregu/dynamo"
 )
 
+var ErrNotFound = fmt.Errorf("not found")
+
 type DynamoRepository struct {
-	DB    *dynamo.DB
-	Table dynamo.Table
+	Client    *dynamodb.Client
+	TableName string
 }
 
 type DynamoHabit struct {
 	PK          string
 	SK          string
-	UUID        uuid.UUID
+	UUID        string
 	UserID      UserID
 	Title       string
 	ChecksCount int
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
 
-	LatestCheck *DynamoCheck
+func NewDynamoHabit(userID UserID, habitUUID uuid.UUID) *DynamoHabit {
+	return &DynamoHabit{
+		PK:     fmt.Sprintf("USER#%s", userID),
+		SK:     fmt.Sprintf("HABITS#%s", habitUUID),
+		UserID: userID,
+		UUID:   habitUUID.String(),
+	}
+}
+
+// GetKey returns the composite primary key of the movie in a format that can be
+// sent to DynamoDB.
+func (h *DynamoHabit) GetKey() map[string]types.AttributeValue {
+	pk, err := attributevalue.Marshal(h.PK)
+	if err != nil {
+		panic(fmt.Errorf("marshal PK: %w", err))
+	}
+	sk, err := attributevalue.Marshal(h.SK)
+	if err != nil {
+		panic(fmt.Errorf("marshal SK: %w", err))
+	}
+	return map[string]types.AttributeValue{"PK": pk, "SK": sk}
 }
 
 type DynamoCheck struct {
 	PK             string
 	SK             string
 	CheckDateLSISK string
-	HabitUUID      uuid.UUID
+	HabitUUID      string
 	Date           string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
 
-func (r *DynamoRepository) AllHabits(ctx context.Context, uid UserID) ([]*DynamoHabit, error) {
-	var habits []*DynamoHabit
-	err := r.Table.Get("PK", fmt.Sprintf("USER#%s", uid)).
-		Range("SK", dynamo.BeginsWith, "HABITS#").
-		AllWithContext(ctx, &habits)
+func NewDynamoCheck(userID UserID, habitUUID uuid.UUID, date string) *DynamoCheck {
+	return &DynamoCheck{
+		PK:             fmt.Sprintf("USER#%s", userID),
+		SK:             fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", habitUUID, date),
+		CheckDateLSISK: fmt.Sprintf("CHECK_DATE#%s__HABIT#%s", date, habitUUID),
+		HabitUUID:      habitUUID.String(),
+		Date:           date,
+	}
+}
+
+// GetKey returns the composite primary key of the movie in a format that can be
+// sent to DynamoDB.
+func (h *DynamoCheck) GetKey() map[string]types.AttributeValue {
+	pk, err := attributevalue.Marshal(h.PK)
 	if err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
+		panic(err)
+	}
+	sk, err := attributevalue.Marshal(h.SK)
+	if err != nil {
+		panic(err)
+	}
+	return map[string]types.AttributeValue{"PK": pk, "SK": sk}
+}
+
+func (r *DynamoRepository) AllHabits(ctx context.Context, uid UserID) ([]*DynamoHabit, error) {
+	expr, err := expression.NewBuilder().
+		WithKeyCondition(
+			expression.Key("PK").Equal(expression.Value(fmt.Sprintf("USER#%s", uid))).
+				And(expression.Key("SK").BeginsWith("HABITS#")),
+		).
+		Build()
+	if err != nil {
+		return nil, fmt.Errorf("build expression: %w", err)
+	}
+
+	var habits []*DynamoHabit
+	paginator := dynamodb.NewQueryPaginator(r.Client, &dynamodb.QueryInput{
+		TableName:                 &r.TableName,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ProjectionExpression:      expr.Projection(),
+	})
+	for paginator.HasMorePages() {
+		resp, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("query paginator: %w", err)
+		}
+
+		var pageItems []*DynamoHabit
+		if err := attributevalue.UnmarshalListOfMapsWithOptions(resp.Items, &pageItems); err != nil {
+			return nil, fmt.Errorf("unmarshal items: %w", err)
+		}
+		habits = append(habits, pageItems...)
 	}
 
 	return habits, nil
 }
 
 func (r *DynamoRepository) AllArchivedHabits(ctx context.Context, uid UserID) ([]*DynamoHabit, error) {
-	var habits []*DynamoHabit
-	err := r.Table.Get("PK", fmt.Sprintf("USER#%s", uid)).
-		Range("SK", dynamo.BeginsWith, "ARCHIVED_HABITS#").
-		AllWithContext(ctx, &habits)
+	expr, err := expression.NewBuilder().
+		WithKeyCondition(
+			expression.Key("PK").Equal(expression.Value(fmt.Sprintf("USER#%s", uid))).
+				And(expression.Key("SK").BeginsWith("ARCHIVED_HABITS#")),
+		).
+		Build()
 	if err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
+		return nil, fmt.Errorf("build expression: %w", err)
+	}
+
+	var habits []*DynamoHabit
+	paginator := dynamodb.NewQueryPaginator(r.Client, &dynamodb.QueryInput{
+		TableName:                 &r.TableName,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ProjectionExpression:      expr.Projection(),
+	})
+	for paginator.HasMorePages() {
+		resp, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("query paginator: %w", err)
+		}
+
+		var pageItems []*DynamoHabit
+		if err := attributevalue.UnmarshalListOfMaps(resp.Items, &pageItems); err != nil {
+			return nil, fmt.Errorf("unmarshal items: %w", err)
+		}
+		habits = append(habits, pageItems...)
 	}
 
 	return habits, nil
 }
 
 func (r *DynamoRepository) FindHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
-	var habit *DynamoHabit
-	err := r.Table.Get("PK", fmt.Sprintf("USER#%s", uid)).
-		Range("SK", dynamo.Equal, fmt.Sprintf("HABITS#%s", hid)).
-		OneWithContext(ctx, &habit)
+	h := NewDynamoHabit(uid, hid)
+	expr, err := expression.NewBuilder().
+		WithKeyCondition(
+			expression.Key("PK").Equal(expression.Value(h.PK)).
+				And(expression.Key("SK").Equal(expression.Value(h.SK))),
+		).
+		Build()
 	if err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
+		return nil, fmt.Errorf("build expression: %w", err)
 	}
 
-	return habit, nil
+	paginator := dynamodb.NewQueryPaginator(r.Client, &dynamodb.QueryInput{
+		TableName:                 &r.TableName,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ProjectionExpression:      expr.Projection(),
+	})
+	for paginator.HasMorePages() {
+		resp, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("query paginator: %w", err)
+		}
+
+		var pageItems []*DynamoHabit
+		if err := attributevalue.UnmarshalListOfMapsWithOptions(resp.Items, &pageItems); err != nil {
+			return nil, fmt.Errorf("unmarshal items: %w", err)
+		}
+		if len(pageItems) == 1 {
+			return pageItems[0], nil
+		}
+	}
+	return nil, ErrNotFound
 }
 
 func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
 	var habit *DynamoHabit
-	err := r.Table.Get("PK", fmt.Sprintf("USER#%s", uid)).
-		Range("SK", dynamo.Equal, fmt.Sprintf("ARCHIVED_HABITS#%s", hid)).
-		OneWithContext(ctx, &habit)
+	habit.PK = fmt.Sprintf("USER#%s", uid)
+	habit.SK = fmt.Sprintf("ARCHIVED_HABITS#%s", hid)
+
+	resp, err := r.Client.GetItem(ctx, &dynamodb.GetItemInput{
+		TableName: &r.TableName,
+		Key:       habit.GetKey(),
+	})
 	if err != nil {
 		return nil, fmt.Errorf("dynamo: %w", err)
 	}
 
+	if err := attributevalue.UnmarshalMap(resp.Item, &habit); err != nil {
+		return nil, fmt.Errorf("unmarshal item: %w", err)
+	}
 	return habit, nil
 }
 
 func (r *DynamoRepository) CreateHabit(ctx context.Context, uid UserID, title string) (*DynamoHabit, error) {
-	id := uuid.New()
-	now := time.Now()
+	h := NewDynamoHabit(uid, uuid.New())
+	h.Title = title
+	h.CreatedAt = time.Now().Round(time.Nanosecond)
+	h.UpdatedAt = h.CreatedAt
 
-	h := &DynamoHabit{
-		PK:        fmt.Sprintf("USER#%s", uid),
-		SK:        fmt.Sprintf("HABITS#%s", id),
-		UUID:      id,
-		UserID:    uid,
-		Title:     title,
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-	err := r.Table.Put(h).RunWithContext(ctx)
+	item, err := attributevalue.MarshalMap(h)
 	if err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
+		return nil, fmt.Errorf("marshal habit: %w", err)
+	}
+	resp, err := r.Client.PutItem(ctx, &dynamodb.PutItemInput{
+		TableName: &r.TableName,
+		Item:      item,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("put item: %w", err)
+	}
+
+	if err := attributevalue.UnmarshalMap(resp.Attributes, &h); err != nil {
+		return nil, fmt.Errorf("unmarshal item: %w", err)
 	}
 
 	return h, nil
 }
 
 func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid UserID, hid uuid.UUID) error {
-	err := r.Table.Delete("PK", fmt.Sprintf("USER#%s", uid)).
-		Range("SK", fmt.Sprintf("HABITS#%s", hid)).
-		RunWithContext(ctx)
+	_, err := r.Client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
+		TableName: &r.TableName,
+		Key:       NewDynamoHabit(uid, hid).GetKey(),
+	})
 	if err != nil {
-		return fmt.Errorf("dynamo: %w", err)
+		return fmt.Errorf("delete item: %w", err)
 	}
-
 	return nil
 }
 
@@ -122,16 +254,31 @@ func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid UserID, hid uui
 	if err != nil {
 		return nil, fmt.Errorf("find a habit [%s]: %w", hid, err)
 	}
-
-	delete := r.Table.Delete("PK", h.PK).
-		Range("SK", h.SK)
+	deleteKey := h.GetKey()
 
 	h.SK = fmt.Sprintf("ARCHIVED_HABITS#%s", hid)
-	h.UpdatedAt = time.Now()
-	put := r.Table.Put(h)
+	item, err := attributevalue.MarshalMap(h)
+	if err != nil {
+		return nil, fmt.Errorf("marshal habit: %w", err)
+	}
 
-	if err := r.DB.WriteTx().Delete(delete).Put(put).RunWithContext(ctx); err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
+	if _, err := r.Client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			{
+				Delete: &types.Delete{
+					TableName: &r.TableName,
+					Key:       deleteKey,
+				},
+			},
+			{
+				Put: &types.Put{
+					TableName: &r.TableName,
+					Item:      item,
+				},
+			},
+		},
+	}); err != nil {
+		return nil, fmt.Errorf("transact write items: %w", err)
 	}
 
 	return h, nil
@@ -144,10 +291,25 @@ type DynamoRepositoryUpdateHabitInput struct {
 }
 
 func (r *DynamoRepository) UpdateHabit(ctx context.Context, in *DynamoRepositoryUpdateHabitInput) error {
-	return r.Table.Update("PK", fmt.Sprintf("USER#%s", in.UserID)).
-		Range("SK", fmt.Sprintf("HABITS#%s", in.HabitUUID)).
-		Set("Title", in.Title).
-		RunWithContext(ctx)
+	h := NewDynamoHabit(in.UserID, in.HabitUUID)
+
+	update := expression.Set(expression.Name("Title"), expression.Value(in.Title))
+	expr, err := expression.NewBuilder().WithUpdate(update).Build()
+	if err != nil {
+		return fmt.Errorf("build expression: %w", err)
+	}
+	_, err = r.Client.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+		TableName:                 &r.TableName,
+		Key:                       h.GetKey(),
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		UpdateExpression:          expr.Update(),
+		ReturnValues:              types.ReturnValueNone,
+	})
+	if err != nil {
+		return fmt.Errorf("update item: %w", err)
+	}
+	return nil
 }
 
 func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
@@ -156,100 +318,184 @@ func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid UserID, hid u
 		return nil, fmt.Errorf("find a habit [%s]: %w", hid, err)
 	}
 
-	delete := r.Table.Delete("PK", h.PK).
-		Range("SK", h.SK)
+	deleteKey := h.GetKey()
 
 	h.SK = fmt.Sprintf("HABITS#%s", hid)
-	h.UpdatedAt = time.Now()
-	put := r.Table.Put(h)
+	item, err := attributevalue.MarshalMap(h)
+	if err != nil {
+		return nil, fmt.Errorf("marshal habit: %w", err)
+	}
 
-	if err := r.DB.WriteTx().Delete(delete).Put(put).RunWithContext(ctx); err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
+	if _, err := r.Client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			{
+				Delete: &types.Delete{
+					TableName: &r.TableName,
+					Key:       deleteKey,
+				},
+			},
+			{
+				Put: &types.Put{
+					TableName: &r.TableName,
+					Item:      item,
+				},
+			},
+		},
+	}); err != nil {
+		return nil, fmt.Errorf("transact write items: %w", err)
 	}
 
 	return h, nil
 }
 
-func (r *DynamoRepository) ListChecks(ctx context.Context, uid UserID, hid uuid.UUID) ([]*DynamoCheck, error) {
-	var checks []*DynamoCheck
-	err := r.Table.Get("PK", fmt.Sprintf("USER#%s", uid)).
-		Range("SK", dynamo.BeginsWith, fmt.Sprintf("HABIT#%s__CHECK_DATE#", hid)).
-		Order(dynamo.Descending).
-		AllWithContext(ctx, &checks)
+func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid UserID, hid uuid.UUID, limit int32) ([]*DynamoCheck, error) {
+	expr, err := expression.NewBuilder().
+		WithKeyCondition(
+			expression.Key("PK").Equal(expression.Value(fmt.Sprintf("USER#%s", uid))).
+				And(expression.Key("SK").BeginsWith(fmt.Sprintf("HABIT#%s__CHECK_DATE#", hid))),
+		).
+		Build()
 	if err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
+		return nil, fmt.Errorf("build expression: %w", err)
 	}
 
-	return checks, nil
-}
+	paginator := dynamodb.NewQueryPaginator(r.Client, &dynamodb.QueryInput{
+		TableName:                 &r.TableName,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ProjectionExpression:      expr.Projection(),
+		Limit:                     &limit,
+		ScanIndexForward:          aws.Bool(false),
+	})
 
-func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid UserID, hid uuid.UUID, limit int64) ([]*DynamoCheck, error) {
-	var checks []*DynamoCheck
-	err := r.Table.Get("PK", fmt.Sprintf("USER#%s", uid)).
-		Range("SK",
-			dynamo.BeginsWith,
-			fmt.Sprintf("HABIT#%s__CHECK_DATE#", hid)).
-		Order(dynamo.Descending).
-		Limit(limit).
-		AllWithContext(ctx, &checks)
+	resp, err := paginator.NextPage(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
+		return nil, fmt.Errorf("query paginator: %w", err)
 	}
-
-	return checks, nil
+	var pageItems []*DynamoCheck
+	if err := attributevalue.UnmarshalListOfMapsWithOptions(resp.Items, &pageItems); err != nil {
+		return nil, fmt.Errorf("unmarshal items: %w", err)
+	}
+	return pageItems, nil
 }
 
 func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, uid UserID) ([]*DynamoCheck, error) {
-	var checks []*DynamoCheck
-	err := r.Table.Get("PK", fmt.Sprintf("USER#%s", uid)).
-		Range("CheckDateLSISK",
-			dynamo.GreaterOrEqual,
-			fmt.Sprintf("CHECK_DATE#%s", time.Now().Add(time.Hour*24*7*-1).Format("2006-01-02"))).
-		Index("CheckDateLSI").
-		AllWithContext(ctx, &checks)
+	minTime := time.Now().Add(time.Hour * 24 * 7 * -1).Format("2006-01-02")
+
+	expr, err := expression.NewBuilder().
+		WithKeyCondition(
+			expression.Key("PK").Equal(expression.Value(fmt.Sprintf("USER#%s", uid))).
+				And(expression.Key("CheckDateLSISK").
+					GreaterThanEqual(expression.Value(fmt.Sprintf("CHECK_DATE#%s", minTime))),
+				),
+		).
+		Build()
 	if err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
+		return nil, fmt.Errorf("build expression: %w", err)
+	}
+
+	var checks []*DynamoCheck
+	paginator := dynamodb.NewQueryPaginator(r.Client, &dynamodb.QueryInput{
+		TableName:                 &r.TableName,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ProjectionExpression:      expr.Projection(),
+		IndexName:                 aws.String("CheckDateLSI"),
+	})
+	for paginator.HasMorePages() {
+		resp, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("query paginator: %w", err)
+		}
+
+		var pageItems []*DynamoCheck
+		if err := attributevalue.UnmarshalListOfMapsWithOptions(resp.Items, &pageItems); err != nil {
+			return nil, fmt.Errorf("unmarshal items: %w", err)
+		}
+		checks = append(checks, pageItems...)
 	}
 
 	return checks, nil
 }
 
 func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid.UUID, date string) (*DynamoCheck, error) {
-	now := time.Now()
-	c := &DynamoCheck{
-		PK:             fmt.Sprintf("USER#%s", uid),
-		SK:             fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", hid, date),
-		CheckDateLSISK: fmt.Sprintf("CHECK_DATE#%s__HABIT#%s", date, hid),
-		HabitUUID:      hid,
-		Date:           date,
-		CreatedAt:      now,
-		UpdatedAt:      now,
+	c := NewDynamoCheck(uid, hid, date)
+	c.CreatedAt = time.Now().Round(time.Nanosecond)
+	c.UpdatedAt = c.CreatedAt
+
+	item, err := attributevalue.MarshalMap(c)
+	if err != nil {
+		return nil, fmt.Errorf("marshal check: %w", err)
 	}
 
-	put := r.Table.Put(c)
-	increment := r.Table.Update("PK", fmt.Sprintf("USER#%s", uid)).
-		Range("SK", fmt.Sprintf("HABITS#%s", hid)).
-		SetExpr("'ChecksCount' = 'ChecksCount' + ?", 1)
+	h := NewDynamoHabit(uid, hid)
 
-	err := r.DB.WriteTx().Put(put).Update(increment).RunWithContext(ctx)
+	update := expression.Set(expression.Name("ChecksCount"), expression.Name("ChecksCount").Plus(expression.Value(1)))
+	updateExpr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
+		return nil, fmt.Errorf("build expression: %w", err)
+	}
+
+	if _, err := r.Client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			{
+				Put: &types.Put{
+					TableName: &r.TableName,
+					Item:      item,
+				},
+			},
+			{
+				Update: &types.Update{
+					TableName:                 &r.TableName,
+					Key:                       h.GetKey(),
+					ExpressionAttributeNames:  updateExpr.Names(),
+					ExpressionAttributeValues: updateExpr.Values(),
+					UpdateExpression:          updateExpr.Update(),
+				},
+			},
+		},
+	}); err != nil {
+		return nil, fmt.Errorf("transact write items: %w", err)
 	}
 
 	return c, nil
 }
 
 func (r *DynamoRepository) DeleteCheck(ctx context.Context, uid UserID, hid uuid.UUID, date string) error {
-	del := r.Table.Delete("PK", fmt.Sprintf("USER#%s", uid)).
-		Range("SK", fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", hid, date))
-	decrement := r.Table.Update("PK", fmt.Sprintf("USER#%s", uid)).
-		Range("SK", fmt.Sprintf("HABITS#%s", hid)).
-		SetExpr("'ChecksCount' = 'ChecksCount' - ?", 1)
+	c := &DynamoCheck{
+		PK: fmt.Sprintf("USER#%s", uid),
+		SK: fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", hid, date),
+	}
+	h := NewDynamoHabit(uid, hid)
 
-	err := r.DB.WriteTx().Delete(del).Update(decrement).RunWithContext(ctx)
+	update := expression.Set(expression.Name("ChecksCount"), expression.Name("ChecksCount").Plus(expression.Value(-1)))
+	updateExpr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
-		return fmt.Errorf("dynamo: %w", err)
+		return fmt.Errorf("build expression: %w", err)
 	}
 
+	if _, err := r.Client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
+		TransactItems: []types.TransactWriteItem{
+			{
+				Delete: &types.Delete{
+					TableName: &r.TableName,
+					Key:       c.GetKey(),
+				},
+			},
+			{
+				Update: &types.Update{
+					TableName:                 &r.TableName,
+					Key:                       h.GetKey(),
+					ExpressionAttributeNames:  updateExpr.Names(),
+					ExpressionAttributeValues: updateExpr.Values(),
+					UpdateExpression:          updateExpr.Update(),
+				},
+			},
+		},
+	}); err != nil {
+		return fmt.Errorf("transact write items: %w", err)
+	}
 	return nil
 }

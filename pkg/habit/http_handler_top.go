@@ -1,6 +1,7 @@
 package habit
 
 import (
+	"fmt"
 	"html/template"
 	"log"
 	"net/http"
@@ -21,7 +22,7 @@ func (h *HTTPHandler) showTopPage(w http.ResponseWriter, r *http.Request) {
 
 	habits, err := h.Repository.AllHabits(ctx, uid)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("all habits: %w", err))
 		return
 	}
 	sort.Slice(habits, func(i, j int) bool {
@@ -30,37 +31,45 @@ func (h *HTTPHandler) showTopPage(w http.ResponseWriter, r *http.Request) {
 
 	archivedHabits, err := h.Repository.AllArchivedHabits(ctx, uid)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("all archived habits: %w", err))
 		return
 	}
 
+	type habit2 struct {
+		*DynamoHabit
+		LatestCheck *DynamoCheck
+	}
+	var habits2 []*habit2
+
 	checks, err := h.Repository.ListLastWeekChecksInAllHabits(ctx, uid)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("list last week checks in all habits: %w", err))
 		return
 	}
 	for _, habit := range habits {
+		h2 := &habit2{DynamoHabit: habit}
 		for _, check := range checks {
 			if check.HabitUUID != habit.UUID {
 				continue
 			}
 
-			if habit.LatestCheck == nil || habit.LatestCheck.Date < check.Date {
-				habit.LatestCheck = check
+			if h2.LatestCheck == nil || h2.LatestCheck.Date < check.Date {
+				h2.LatestCheck = check
 			}
 		}
+		habits2 = append(habits2, h2)
 	}
 
 	w.WriteHeader(http.StatusOK)
 	if err := h.tmpls["top.html"].Execute(w, struct {
 		CSRFHiddenInput template.HTML
 		User            *auth.UserInfo
-		Habits          []*DynamoHabit
+		Habits          []*habit2
 		ArchivedHabits  []*DynamoHabit
 	}{
 		CSRFHiddenInput: csrf.TemplateField(r),
 		User:            userRec.UserInfo,
-		Habits:          habits,
+		Habits:          habits2,
 		ArchivedHabits:  archivedHabits,
 	}); err != nil {
 		log.Printf("Failed to write index page: %s", err)
