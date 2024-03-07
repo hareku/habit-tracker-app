@@ -21,7 +21,7 @@ var googleCred []byte
 //go:embed .secrets/csrf-token.key
 var csrfKey []byte
 
-var handler *httpadapter.HandlerAdapterV2
+var handler *httpadapter.HandlerAdapter
 
 func init() {
 	fa, err := habit.NewFirebaseAuthenticator(googleCred)
@@ -49,7 +49,7 @@ func init() {
 		Table: db.Table("HabitTrackerApp"),
 	}
 
-	handler = httpadapter.NewV2(habit.NewHTTPHandler(&habit.NewHTTPHandlerInput{
+	handler = httpadapter.New(habit.NewHTTPHandler(&habit.NewHTTPHandlerInput{
 		AuthMiddleware: habit.NewAuthMiddleware(fa),
 		CSRFMiddleware: habit.NewCSRFMiddleware(csrfKey, secure),
 		Authenticator:  fa,
