@@ -15,4 +15,4 @@ dev:
 
 deploy:
 	sam build
-	sam deploy -y
+	sam deploy

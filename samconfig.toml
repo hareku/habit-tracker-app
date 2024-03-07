@@ -6,7 +6,7 @@ stack_name = "habit-tracker-app"
 s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-adp6p3ocsygi"
 s3_prefix = "habit-tracker-app"
 region = "ap-northeast-1"
-confirm_changeset = true
+confirm_changeset = false
 capabilities = "CAPABILITY_IAM"
 image_repositories = []
 tags = "Project=HabitTrackerApp"
