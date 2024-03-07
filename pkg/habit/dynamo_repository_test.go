@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"sort"
 	"testing"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -17,8 +16,6 @@ import (
 )
 
 func newDynamoRepositoryTest(t *testing.T) *DynamoRepository {
-	time.Local = nil
-
 	ctx := context.Background()
 	cfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
