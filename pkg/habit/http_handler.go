@@ -3,6 +3,7 @@ package habit
 import (
 	"embed"
 	"html/template"
+	"log"
 	"net/http"
 	"path"
 
@@ -78,4 +79,9 @@ func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *HTTPHandler) redirect(w http.ResponseWriter, loc string) {
 	w.Header().Set("Location", loc)
 	w.WriteHeader(http.StatusFound)
+}
+
+func (h *HTTPHandler) handleError(w http.ResponseWriter, _ *http.Request, err error) {
+	log.Printf("[ERROR] %+v", err)
+	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
