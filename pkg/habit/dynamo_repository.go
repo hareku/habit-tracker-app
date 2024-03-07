@@ -29,8 +29,6 @@ type DynamoHabit struct {
 	ChecksCount int
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
-
-	LatestCheck *DynamoCheck
 }
 
 func NewDynamoHabit(userID UserID, habitUUID uuid.UUID) *DynamoHabit {
@@ -47,11 +45,11 @@ func NewDynamoHabit(userID UserID, habitUUID uuid.UUID) *DynamoHabit {
 func (h *DynamoHabit) GetKey() map[string]types.AttributeValue {
 	pk, err := attributevalue.Marshal(h.PK)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("marshal PK: %w", err))
 	}
 	sk, err := attributevalue.Marshal(h.SK)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("marshal SK: %w", err))
 	}
 	return map[string]types.AttributeValue{"PK": pk, "SK": sk}
 }
@@ -162,25 +160,40 @@ func (r *DynamoRepository) AllArchivedHabits(ctx context.Context, uid UserID) ([
 }
 
 func (r *DynamoRepository) FindHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
-	h := &DynamoHabit{
-		PK: fmt.Sprintf("USER#%s", uid),
-		SK: fmt.Sprintf("HABITS#%s", hid),
-	}
-
-	resp, err := r.Client.GetItem(ctx, &dynamodb.GetItemInput{
-		TableName: &r.TableName,
-		Key:       h.GetKey(),
-	})
+	h := NewDynamoHabit(uid, hid)
+	expr, err := expression.NewBuilder().
+		WithKeyCondition(
+			expression.Key("PK").Equal(expression.Value(h.PK)).
+				And(expression.Key("SK").Equal(expression.Value(h.SK))),
+		).
+		Build()
 	if err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
+		return nil, fmt.Errorf("build expression: %w", err)
 	}
 
-	if err := attributevalue.UnmarshalMap(resp.Item, &h); err != nil {
-		return nil, fmt.Errorf("unmarshal item: %w", err)
-	}
+	paginator := dynamodb.NewQueryPaginator(r.Client, &dynamodb.QueryInput{
+		TableName:                 &r.TableName,
+		ExpressionAttributeNames:  expr.Names(),
+		ExpressionAttributeValues: expr.Values(),
+		KeyConditionExpression:    expr.KeyCondition(),
+		ProjectionExpression:      expr.Projection(),
+	})
+	for paginator.HasMorePages() {
+		resp, err := paginator.NextPage(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("query paginator: %w", err)
+		}
 
-	h.beforeReturn()
-	return h, nil
+		var pageItems []*DynamoHabit
+		if err := attributevalue.UnmarshalListOfMapsWithOptions(resp.Items, &pageItems); err != nil {
+			return nil, fmt.Errorf("unmarshal items: %w", err)
+		}
+		if len(pageItems) == 1 {
+			pageItems[0].beforeReturn()
+			return pageItems[0], nil
+		}
+	}
+	return nil, ErrNotFound
 }
 
 func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
@@ -226,10 +239,11 @@ func (r *DynamoRepository) CreateHabit(ctx context.Context, uid UserID, title st
 }
 
 func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid UserID, hid uuid.UUID) error {
-	if _, err := r.Client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
+	_, err := r.Client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
 		TableName: &r.TableName,
 		Key:       NewDynamoHabit(uid, hid).GetKey(),
-	}); err != nil {
+	})
+	if err != nil {
 		return fmt.Errorf("delete item: %w", err)
 	}
 	return nil

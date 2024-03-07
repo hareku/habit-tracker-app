@@ -95,13 +95,14 @@ func Test_DeleteHabit(t *testing.T) {
 
 	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
 	require.NoError(t, err)
+
 	h2, err := repo.CreateHabit(ctx, myUserID, "Habit2")
 	require.NoError(t, err)
 
 	require.NoError(t, repo.DeleteHabit(ctx, myUserID, uuid.MustParse(h1.UUID)))
 
 	got1, err := repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
-	require.Error(t, err, "Got habit1: %v", got1)
+	require.Error(t, err, "Got habit1: %+v", got1)
 	require.ErrorIs(t, err, ErrNotFound)
 
 	got2, err := repo.FindHabit(ctx, myUserID, uuid.MustParse(h2.UUID))
