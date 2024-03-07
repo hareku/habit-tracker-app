@@ -21,11 +21,12 @@ type NewHTTPHandlerInput struct {
 }
 
 type HTTPHandler struct {
-	Chi           *chi.Mux
 	Authenticator *FirebaseAuthenticator
 	Repository    *DynamoRepository
 	Secure        bool
-	tmpls         map[string]*template.Template
+
+	mux   *chi.Mux
+	tmpls map[string]*template.Template
 }
 
 func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
@@ -65,9 +66,13 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 	})
 	r.Get("/login", h.showLoginPage)
 	r.Post("/session-cookie", h.storeSessionCookie)
-	h.Chi = r
+	h.mux = r
 
 	return h
+}
+
+func (h *HTTPHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	h.mux.ServeHTTP(w, r)
 }
 
 func (h *HTTPHandler) redirect(w http.ResponseWriter, loc string) {

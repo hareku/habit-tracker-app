@@ -10,7 +10,7 @@ import (
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	chiadapter "github.com/awslabs/aws-lambda-go-api-proxy/chi"
+	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
 	"github.com/guregu/dynamo"
 	"github.com/hareku/habit-tracker-app/pkg/habit"
 )
@@ -21,7 +21,7 @@ var googleCred []byte
 //go:embed .secrets/csrf-token.key
 var csrfKey []byte
 
-var handler *habit.HTTPHandler
+var handler *httpadapter.HandlerAdapterV2
 
 func init() {
 	fa, err := habit.NewFirebaseAuthenticator(googleCred)
@@ -49,15 +49,15 @@ func init() {
 		Table: db.Table("HabitTrackerApp"),
 	}
 
-	handler = habit.NewHTTPHandler(&habit.NewHTTPHandlerInput{
+	handler = httpadapter.NewV2(habit.NewHTTPHandler(&habit.NewHTTPHandlerInput{
 		AuthMiddleware: habit.NewAuthMiddleware(fa),
 		CSRFMiddleware: habit.NewCSRFMiddleware(csrfKey, secure),
 		Authenticator:  fa,
 		Repository:     repo,
 		Secure:         secure,
-	})
+	}))
 }
 
 func main() {
-	lambda.Start(chiadapter.New(handler.Chi).ProxyWithContext)
+	lambda.Start(handler.ProxyWithContext)
 }
