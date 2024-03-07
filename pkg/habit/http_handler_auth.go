@@ -1,8 +1,8 @@
 package habit
 
 import (
+	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"time"
 
@@ -16,7 +16,8 @@ func (h *HTTPHandler) showLoginPage(w http.ResponseWriter, r *http.Request) {
 	}{
 		CSRFHiddenInput: csrf.TemplateField(r),
 	}); err != nil {
-		log.Printf("Failed to write login page: %s", err)
+		h.handleError(w, r, fmt.Errorf("write login page: %w", err))
+		return
 	}
 }
 
@@ -32,7 +33,7 @@ func (h *HTTPHandler) logout(w http.ResponseWriter, r *http.Request) {
 
 func (h *HTTPHandler) deleteAccount(w http.ResponseWriter, r *http.Request) {
 	if err := h.Authenticator.DeleteUser(r.Context(), MustGetUserID(r.Context())); err != nil {
-		http.Error(w, "Failed to delete your account.", http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("delete account: %w", err))
 		return
 	}
 

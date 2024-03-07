@@ -1,7 +1,7 @@
 package habit
 
 import (
-	"log"
+	"fmt"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -14,8 +14,7 @@ func (h *HTTPHandler) archiveHabit(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.Repository.ArchiveHabit(ctx, uid, hid)
 	if err != nil {
-		log.Printf("Failed to archive a habit: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("archive a habit: %w", err))
 		return
 	}
 
@@ -29,8 +28,7 @@ func (h *HTTPHandler) unarchiveHabit(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.Repository.UnarchiveHabit(ctx, uid, hid)
 	if err != nil {
-		log.Printf("Failed to unarchive a habit: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("unarchive a habit: %w", err))
 		return
 	}
 

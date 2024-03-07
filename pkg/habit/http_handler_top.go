@@ -3,7 +3,6 @@ package habit
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"sort"
 
@@ -72,6 +71,7 @@ func (h *HTTPHandler) showTopPage(w http.ResponseWriter, r *http.Request) {
 		Habits:          habits2,
 		ArchivedHabits:  archivedHabits,
 	}); err != nil {
-		log.Printf("Failed to write index page: %s", err)
+		h.handleError(w, r, fmt.Errorf("write top page: %w", err))
+		return
 	}
 }

@@ -3,7 +3,6 @@ package habit
 import (
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 	"time"
 	"unicode/utf8"
@@ -32,14 +31,12 @@ func (h *HTTPHandler) showHabitPage(w http.ResponseWriter, r *http.Request) {
 
 	habit, err := h.Repository.FindHabit(ctx, uid, hid)
 	if err != nil {
-		log.Printf("Failed to find a habit[%s]: %s", hid, err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("find a habit: %w", err))
 		return
 	}
 	checks, err := h.Repository.ListLatestChecksWithLimit(ctx, uid, hid, 7)
 	if err != nil {
-		log.Printf("Failed to list checks of habit[%s]: %s", hid, err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("list latest checks: %w", err))
 		return
 	}
 
@@ -63,7 +60,8 @@ func (h *HTTPHandler) showHabitPage(w http.ResponseWriter, r *http.Request) {
 			return latest.Add(24 * time.Hour).Format("2006-01-02")
 		}(),
 	}); err != nil {
-		log.Printf("Failed to write habit page: %s", err)
+		h.handleError(w, r, fmt.Errorf("write habit page: %w", err))
+		return
 	}
 }
 
@@ -80,8 +78,7 @@ func (h *HTTPHandler) createHabit(w http.ResponseWriter, r *http.Request) {
 
 	habit, err := h.Repository.CreateHabit(ctx, uid, title)
 	if err != nil {
-		log.Printf("Failed to create a habit: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("create a habit: %w", err))
 		return
 	}
 
@@ -105,8 +102,7 @@ func (h *HTTPHandler) updateHabit(w http.ResponseWriter, r *http.Request) {
 	in.Title = title
 
 	if err := h.Repository.UpdateHabit(ctx, &in); err != nil {
-		log.Printf("Failed to update a habit: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("update a habit: %w", err))
 		return
 	}
 
@@ -120,8 +116,7 @@ func (h *HTTPHandler) deleteHabit(w http.ResponseWriter, r *http.Request) {
 
 	err := h.Repository.DeleteHabit(ctx, uid, hid)
 	if err != nil {
-		log.Printf("Failed to delete a habit: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("delete a habit: %w", err))
 		return
 	}
 

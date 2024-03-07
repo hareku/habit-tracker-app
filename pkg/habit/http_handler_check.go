@@ -2,7 +2,6 @@ package habit
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"time"
 
@@ -25,8 +24,7 @@ func (h *HTTPHandler) createCheck(w http.ResponseWriter, r *http.Request) {
 
 	_, err := h.Repository.CreateCheck(ctx, uid, hid, date)
 	if err != nil {
-		log.Printf("Failed to create a check: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("create a check: %w", err))
 		return
 	}
 
@@ -43,8 +41,7 @@ func (h *HTTPHandler) deleteCheck(w http.ResponseWriter, r *http.Request) {
 
 	err := h.Repository.DeleteCheck(ctx, uid, hid, date)
 	if err != nil {
-		log.Printf("Failed to delete a check: %s", err)
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("delete a check: %w", err))
 		return
 	}
 
