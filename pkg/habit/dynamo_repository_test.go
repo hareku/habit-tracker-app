@@ -109,3 +109,26 @@ func Test_DeleteHabit(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, h2, got2)
 }
+
+func Test_ListLatestChecksWithLimit(t *testing.T) {
+	repo := newDynamoRepositoryTest(t)
+	ctx := context.Background()
+
+	myUserID := UserID("MyUserID")
+
+	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
+	require.NoError(t, err)
+
+	c1, err := repo.CreateCheck(ctx, myUserID, uuid.MustParse(h1.UUID), "2000-01-01")
+	require.NoError(t, err)
+	c2, err := repo.CreateCheck(ctx, myUserID, uuid.MustParse(h1.UUID), "2000-01-02")
+	require.NoError(t, err)
+
+	got1, err := repo.ListLatestChecksWithLimit(ctx, myUserID, uuid.MustParse(h1.UUID), 1)
+	require.NoError(t, err)
+	assert.Equal(t, []*DynamoCheck{c2}, got1)
+
+	got2, err := repo.ListLatestChecksWithLimit(ctx, myUserID, uuid.MustParse(h1.UUID), 2)
+	require.NoError(t, err)
+	assert.Equal(t, []*DynamoCheck{c2, c1}, got2)
+}

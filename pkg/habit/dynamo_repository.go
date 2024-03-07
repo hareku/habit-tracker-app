@@ -69,6 +69,21 @@ type DynamoCheck struct {
 	UpdatedAt      time.Time
 }
 
+func NewDynamoCheck(userID UserID, habitUUID uuid.UUID, date string) *DynamoCheck {
+	return &DynamoCheck{
+		PK:             fmt.Sprintf("USER#%s", userID),
+		SK:             fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", habitUUID, date),
+		CheckDateLSISK: fmt.Sprintf("CHECK_DATE#%s__HABIT#%s", date, habitUUID),
+		HabitUUID:      habitUUID.String(),
+		Date:           date,
+	}
+}
+
+func (h *DynamoCheck) beforeReturn() {
+	h.CreatedAt = h.CreatedAt.UTC()
+	h.UpdatedAt = h.UpdatedAt.UTC()
+}
+
 // GetKey returns the composite primary key of the movie in a format that can be
 // sent to DynamoDB.
 func (h *DynamoCheck) GetKey() map[string]types.AttributeValue {
@@ -383,6 +398,10 @@ func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid Us
 		}
 		checks = append(checks, pageItems...)
 	}
+
+	for _, c := range checks {
+		c.beforeReturn()
+	}
 	return checks, nil
 }
 
@@ -422,20 +441,19 @@ func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, ui
 		}
 		checks = append(checks, pageItems...)
 	}
+
+	for _, c := range checks {
+		c.beforeReturn()
+	}
 	return checks, nil
 }
 
 func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid.UUID, date string) (*DynamoCheck, error) {
 	now := time.Now()
-	c := &DynamoCheck{
-		PK:             fmt.Sprintf("USER#%s", uid),
-		SK:             fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", hid, date),
-		CheckDateLSISK: fmt.Sprintf("CHECK_DATE#%s__HABIT#%s", date, hid),
-		HabitUUID:      hid.String(),
-		Date:           date,
-		CreatedAt:      now,
-		UpdatedAt:      now,
-	}
+	c := NewDynamoCheck(uid, hid, date)
+	c.CreatedAt = now
+	c.UpdatedAt = now
+
 	item, err := attributevalue.MarshalMap(c)
 	if err != nil {
 		return nil, fmt.Errorf("marshal check: %w", err)
@@ -470,6 +488,8 @@ func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid
 	}); err != nil {
 		return nil, fmt.Errorf("transact write items: %w", err)
 	}
+
+	c.beforeReturn()
 	return c, nil
 }
 
