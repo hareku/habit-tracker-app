@@ -45,6 +45,11 @@ func (h *DynamoHabit) GetKey() map[string]types.AttributeValue {
 	return map[string]types.AttributeValue{"PK": pk, "SK": sk}
 }
 
+func (h *DynamoHabit) beforeReturn() {
+	h.CreatedAt = h.CreatedAt.UTC()
+	h.UpdatedAt = h.UpdatedAt.UTC()
+}
+
 type DynamoCheck struct {
 	PK             string
 	SK             string
@@ -100,6 +105,10 @@ func (r *DynamoRepository) AllHabits(ctx context.Context, uid UserID) ([]*Dynamo
 		}
 		habits = append(habits, pageItems...)
 	}
+
+	for _, h := range habits {
+		h.beforeReturn()
+	}
 	return habits, nil
 }
 
@@ -134,6 +143,10 @@ func (r *DynamoRepository) AllArchivedHabits(ctx context.Context, uid UserID) ([
 		}
 		habits = append(habits, pageItems...)
 	}
+
+	for _, h := range habits {
+		h.beforeReturn()
+	}
 	return habits, nil
 }
 
@@ -154,6 +167,8 @@ func (r *DynamoRepository) FindHabit(ctx context.Context, uid UserID, hid uuid.U
 	if err := attributevalue.UnmarshalMap(resp.Item, &h); err != nil {
 		return nil, fmt.Errorf("unmarshal item: %w", err)
 	}
+
+	h.beforeReturn()
 	return h, nil
 }
 
@@ -178,7 +193,7 @@ func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid UserID, hi
 
 func (r *DynamoRepository) CreateHabit(ctx context.Context, uid UserID, title string) (*DynamoHabit, error) {
 	id := uuid.New()
-	now := time.Now()
+	now := time.Now().UTC()
 
 	h := &DynamoHabit{
 		PK:        fmt.Sprintf("USER#%s", uid),
@@ -199,18 +214,20 @@ func (r *DynamoRepository) CreateHabit(ctx context.Context, uid UserID, title st
 	}); err != nil {
 		return nil, fmt.Errorf("put item: %w", err)
 	}
+
+	h.beforeReturn()
 	return h, nil
 }
 
 func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid UserID, hid uuid.UUID) error {
-	habit := &DynamoHabit{
+	h := &DynamoHabit{
 		PK: fmt.Sprintf("USER#%s", uid),
 		SK: fmt.Sprintf("HABITS#%s", hid),
 	}
 
 	if _, err := r.Client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
 		TableName: &r.TableName,
-		Key:       habit.GetKey(),
+		Key:       h.GetKey(),
 	}); err != nil {
 		return fmt.Errorf("delete item: %w", err)
 	}
@@ -248,6 +265,8 @@ func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid UserID, hid uui
 	}); err != nil {
 		return nil, fmt.Errorf("transact write items: %w", err)
 	}
+
+	h.beforeReturn()
 	return h, nil
 }
 
@@ -314,6 +333,8 @@ func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid UserID, hid u
 	}); err != nil {
 		return nil, fmt.Errorf("transact write items: %w", err)
 	}
+
+	h.beforeReturn()
 	return h, nil
 }
 
@@ -354,7 +375,7 @@ func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid Us
 }
 
 func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, uid UserID) ([]*DynamoCheck, error) {
-	minTime := time.Now().Add(time.Hour * 24 * 7 * -1).Format("2006-01-02")
+	minTime := time.Now().Add(time.Hour * 24 * 7 * -1).UTC().Format("2006-01-02")
 
 	expr, err := expression.NewBuilder().
 		WithKeyCondition(
@@ -390,18 +411,6 @@ func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, ui
 		checks = append(checks, pageItems...)
 	}
 	return checks, nil
-
-	// var checks []*DynamoCheck
-	// err := r.Table.Get("PK", fmt.Sprintf("USER#%s", uid)).
-	// 	Range("CheckDateLSISK",
-	// 		dynamo.GreaterOrEqual,
-	// 		fmt.Sprintf("CHECK_DATE#%s", time.Now().Add(time.Hour*24*7*-1).Format("2006-01-02"))).
-	// 	Index("CheckDateLSI").
-	// 	AllWithContext(ctx, &checks)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("dynamo: %w", err)
-	// }
-	// return checks, nil
 }
 
 func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid.UUID, date string) (*DynamoCheck, error) {
