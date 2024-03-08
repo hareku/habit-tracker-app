@@ -4,7 +4,7 @@ import (
 	"embed"
 	"errors"
 	"html/template"
-	"log"
+	"log/slog"
 	"net/http"
 	"path"
 
@@ -82,12 +82,12 @@ func (h *HTTPHandler) redirect(w http.ResponseWriter, loc string) {
 	w.WriteHeader(http.StatusFound)
 }
 
-func (h *HTTPHandler) handleError(w http.ResponseWriter, _ *http.Request, err error) {
+func (h *HTTPHandler) handleError(w http.ResponseWriter, r *http.Request, err error) {
 	if errors.Is(err, ErrNotFound) {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
 
-	log.Printf("[ERROR] %+v", err)
+	slog.ErrorContext(r.Context(), err.Error())
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 }
