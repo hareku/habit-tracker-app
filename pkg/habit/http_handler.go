@@ -10,6 +10,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	slogchi "github.com/samber/slog-chi"
 )
 
 //go:embed templates/*
@@ -51,7 +52,8 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 	h.tmpls = tmpls
 
 	r := chi.NewMux()
-	r.Use(middleware.Logger)
+	r.Use(slogchi.New(slog.Default()))
+	r.Use(middleware.Recoverer)
 	r.Use(in.CSRFMiddleware)
 
 	r.Group(func(r chi.Router) {

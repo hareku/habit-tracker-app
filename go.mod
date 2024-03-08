@@ -17,6 +17,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/csrf v1.7.2
 	github.com/gorilla/securecookie v1.1.2
+	github.com/samber/slog-chi v1.9.1
 	github.com/stretchr/testify v1.9.0
 	google.golang.org/api v0.168.0
 )
