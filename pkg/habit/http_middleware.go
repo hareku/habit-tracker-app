@@ -38,6 +38,7 @@ func NewCSRFMiddleware(key []byte, secure bool) Middleware {
 	hnd := csrf.Protect(
 		key,
 		csrf.Secure(secure),
+		csrf.Path("/"), // to prevent storing the cookie in a subpath
 		csrf.TrustedOrigins([]string{"localhost:3000"}),
 	)
 	return func(next http.Handler) http.Handler {
