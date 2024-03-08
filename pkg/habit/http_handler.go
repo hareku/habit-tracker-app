@@ -9,6 +9,7 @@ import (
 	"path"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 //go:embed templates/*
@@ -50,6 +51,7 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 	h.tmpls = tmpls
 
 	r := chi.NewMux()
+	r.Use(middleware.Logger)
 	r.Use(in.CSRFMiddleware)
 
 	r.Group(func(r chi.Router) {
