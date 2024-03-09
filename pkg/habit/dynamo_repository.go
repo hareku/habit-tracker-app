@@ -21,14 +21,15 @@ type DynamoRepository struct {
 }
 
 type DynamoHabit struct {
-	PK          string
-	SK          string
-	UUID        string
-	UserID      UserID
-	Title       string
-	ChecksCount int
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
+	PK              string
+	SK              string
+	UUID            string
+	UserID          UserID
+	Title           string
+	ChecksCount     int
+	LastCheckedDate *string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 func NewDynamoHabit(userID UserID, habitUUID uuid.UUID) *DynamoHabit {
@@ -55,22 +56,20 @@ func (h *DynamoHabit) GetKey() map[string]types.AttributeValue {
 }
 
 type DynamoCheck struct {
-	PK             string
-	SK             string
-	CheckDateLSISK string
-	HabitUUID      string
-	Date           string
-	CreatedAt      time.Time
-	UpdatedAt      time.Time
+	PK        string
+	SK        string
+	HabitUUID string
+	Date      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 func NewDynamoCheck(userID UserID, habitUUID uuid.UUID, date string) *DynamoCheck {
 	return &DynamoCheck{
-		PK:             fmt.Sprintf("USER#%s", userID),
-		SK:             fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", habitUUID, date),
-		CheckDateLSISK: fmt.Sprintf("CHECK_DATE#%s__HABIT#%s", date, habitUUID),
-		HabitUUID:      habitUUID.String(),
-		Date:           date,
+		PK:        fmt.Sprintf("USER#%s", userID),
+		SK:        fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", habitUUID, date),
+		HabitUUID: habitUUID.String(),
+		Date:      date,
 	}
 }
 
@@ -380,46 +379,6 @@ func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid Us
 	return pageItems, nil
 }
 
-func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, uid UserID) ([]*DynamoCheck, error) {
-	minTime := time.Now().Add(time.Hour * 24 * 7 * -1).Format("2006-01-02")
-
-	expr, err := expression.NewBuilder().
-		WithKeyCondition(
-			expression.Key("PK").Equal(expression.Value(fmt.Sprintf("USER#%s", uid))).
-				And(expression.Key("CheckDateLSISK").
-					GreaterThanEqual(expression.Value(fmt.Sprintf("CHECK_DATE#%s", minTime))),
-				),
-		).
-		Build()
-	if err != nil {
-		return nil, fmt.Errorf("build expression: %w", err)
-	}
-
-	var checks []*DynamoCheck
-	paginator := dynamodb.NewQueryPaginator(r.Client, &dynamodb.QueryInput{
-		TableName:                 &r.TableName,
-		ExpressionAttributeNames:  expr.Names(),
-		ExpressionAttributeValues: expr.Values(),
-		KeyConditionExpression:    expr.KeyCondition(),
-		ProjectionExpression:      expr.Projection(),
-		IndexName:                 aws.String("CheckDateLSI"),
-	})
-	for paginator.HasMorePages() {
-		resp, err := paginator.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("query paginator: %w", err)
-		}
-
-		var pageItems []*DynamoCheck
-		if err := attributevalue.UnmarshalListOfMapsWithOptions(resp.Items, &pageItems); err != nil {
-			return nil, fmt.Errorf("unmarshal items: %w", err)
-		}
-		checks = append(checks, pageItems...)
-	}
-
-	return checks, nil
-}
-
 func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid.UUID, date string) (*DynamoCheck, error) {
 	c := NewDynamoCheck(uid, hid, date)
 	c.CreatedAt = time.Now().Round(time.Nanosecond)
@@ -432,7 +391,9 @@ func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid
 
 	h := NewDynamoHabit(uid, hid)
 
-	update := expression.Set(expression.Name("ChecksCount"), expression.Name("ChecksCount").Plus(expression.Value(1)))
+	update := expression.
+		Set(expression.Name("ChecksCount"), expression.Name("ChecksCount").Plus(expression.Value(1))).
+		Set(expression.Name("LastCheckedDate"), expression.Value(date))
 	updateExpr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
 		return nil, fmt.Errorf("build expression: %w", err)

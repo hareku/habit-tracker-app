@@ -19,7 +19,7 @@
           <a href="/habits/{{.UUID}}">{{.Title}}</a>
         </th>
         <th>
-          {{if .LatestCheck}}<span>{{.LatestCheck.Date}}</span>{{else}}<span>No record in the past week</span>{{end}}
+          {{if .LastCheckedDate}}<span>{{.LastCheckedDate}}</span>{{else}}<span>No record</span>{{end}}
         </th>
         <th>{{.ChecksCount}}</th>
     </tr>

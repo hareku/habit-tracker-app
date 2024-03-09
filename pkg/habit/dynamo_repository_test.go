@@ -134,3 +134,33 @@ func Test_ListLatestChecksWithLimit(t *testing.T) {
 	require.Len(t, got2, 2)
 	require.Equal(t, []*DynamoCheck{c2, c1}, got2)
 }
+
+func Test_CreateCheck_UpdateHabit(t *testing.T) {
+	repo := newDynamoRepositoryTest(t)
+	ctx := context.Background()
+
+	myUserID := UserID("MyUserID")
+
+	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
+	require.NoError(t, err)
+	require.Nil(t, h1.LastCheckedDate)
+	require.Equal(t, 0, h1.ChecksCount)
+
+	c1, err := repo.CreateCheck(ctx, myUserID, uuid.MustParse(h1.UUID), "2000-01-01")
+	require.NoError(t, err)
+
+	h1, err = repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
+	require.NoError(t, err)
+	require.NotNil(t, h1.LastCheckedDate)
+	require.Equal(t, c1.Date, *h1.LastCheckedDate)
+	require.Equal(t, 1, h1.ChecksCount)
+
+	c2, err := repo.CreateCheck(ctx, myUserID, uuid.MustParse(h1.UUID), "2000-01-02")
+	require.NoError(t, err)
+
+	h1, err = repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
+	require.NoError(t, err)
+	require.NotNil(t, h1.LastCheckedDate)
+	require.Equal(t, c2.Date, *h1.LastCheckedDate)
+	require.Equal(t, 2, h1.ChecksCount)
+}

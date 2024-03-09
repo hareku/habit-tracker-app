@@ -60,19 +60,8 @@ Resources:
           AttributeType: S
         - AttributeName: SK
           AttributeType: S
-        - AttributeName: CheckDateLSISK
-          AttributeType: S
       KeySchema:
         - AttributeName: PK
           KeyType: HASH
         - AttributeName: SK
           KeyType: RANGE
-      LocalSecondaryIndexes:
-        - IndexName: CheckDateLSI
-          KeySchema:
-            - AttributeName: PK
-              KeyType: HASH
-            - AttributeName: CheckDateLSISK
-              KeyType: RANGE
-          Projection:
-            ProjectionType: ALL
