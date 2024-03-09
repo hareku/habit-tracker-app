@@ -1,8 +1,6 @@
 module github.com/hareku/habit-tracker-app
 
-go 1.22
-
-toolchain go1.22.0
+go 1.22.0
 
 require (
 	firebase.google.com/go v3.13.0+incompatible
@@ -17,6 +15,7 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/csrf v1.7.2
 	github.com/gorilla/securecookie v1.1.2
+	github.com/hareku/form-method-go v0.0.0-20240309133419-37a526f06cf6
 	github.com/samber/slog-chi v1.9.1
 	github.com/stretchr/testify v1.9.0
 	google.golang.org/api v0.168.0

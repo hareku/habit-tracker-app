@@ -11,6 +11,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/google/uuid"
+	formmethod "github.com/hareku/form-method-go"
 	slogchi "github.com/samber/slog-chi"
 )
 
@@ -38,7 +40,12 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 		Secure:        in.Secure,
 	}
 
-	common := template.Must(template.ParseFS(templates, "templates/_*.html"))
+	common := template.Must(template.ParseFS(templates, "templates/_*.html")).
+		Funcs(template.FuncMap{
+			"method_field": func(method string) template.HTML {
+				return formmethod.TemplateField(method)
+			},
+		})
 	tmpls := map[TypeTemplatePage]*template.Template{}
 	for _, page := range ListPages() {
 		tmpls[TypeTemplatePage(page)] = template.Must(
@@ -49,6 +56,7 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 	h.tmpls = tmpls
 
 	r := chi.NewMux()
+	r.Use(formmethod.Middleware)
 	r.Use(slogchi.New(slog.Default()))
 	r.Use(middleware.Recoverer)
 	r.Use(in.CSRFMiddleware)
@@ -63,7 +71,7 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 		r.Post("/archive-habit", h.archiveHabit)
 		r.Post("/unarchive-habit", h.unarchiveHabit)
 		r.Post("/delete-habit", h.deleteHabit)
-		r.Post("/delete-check", h.deleteCheck)
+		r.Delete("/habits/{habitUUID}/checks", h.deleteCheck)
 		r.Post("/logout", h.logout)
 		r.Post("/delete-account", h.deleteAccount)
 	})
@@ -105,4 +113,11 @@ func (h *HTTPHandler) writePage(w http.ResponseWriter, r *http.Request, status i
 	if _, err := buf.WriteTo(w); err != nil {
 		h.handleError(w, r, fmt.Errorf("write page to response: %w", err))
 	}
+}
+func (h *HTTPHandler) mustHabitUUID(r *http.Request) uuid.UUID {
+	str := chi.URLParam(r, "habitUUID")
+	if str == "" {
+		panic("habitUUID is empty")
+	}
+	return uuid.MustParse(str)
 }

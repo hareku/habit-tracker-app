@@ -6,18 +6,12 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
 	"github.com/gorilla/csrf"
 )
 
 func (h *HTTPHandler) showHabitPage(w http.ResponseWriter, r *http.Request) {
-	hidStr := chi.URLParam(r, "habitUUID")
-	if hidStr == "" {
-		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
-		return
-	}
-	hid := uuid.MustParse(hidStr)
+	hid := h.mustHabitUUID(r)
 
 	ctx := r.Context()
 	uid := MustGetUserID(ctx)

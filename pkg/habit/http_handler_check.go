@@ -36,7 +36,7 @@ func (h *HTTPHandler) deleteCheck(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	uid := MustGetUserID(ctx)
-	hid := uuid.MustParse(r.PostFormValue("habit_uuid"))
+	hid := h.mustHabitUUID(r)
 	date := r.PostFormValue("date")
 
 	err := h.Repository.DeleteCheck(ctx, uid, hid, date)
@@ -45,5 +45,6 @@ func (h *HTTPHandler) deleteCheck(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.redirect(w, fmt.Sprintf("/habits/%s", hid))
+	w.Header().Set("Location", fmt.Sprintf("/habits/%s", hid))
+	w.WriteHeader(http.StatusSeeOther)
 }

@@ -17,9 +17,9 @@
 
 {{if .Checks}}
 <h2>Uncheck last {{len .Checks}} checks</h2>
-<form action="/delete-check" method="post" onsubmit="return window.confirm('Uncheck?')">
+<form action="/habits/{{.Habit.UUID}}/checks" method="post" onsubmit="return window.confirm('Uncheck?')">
   {{ .CSRFHiddenInput }}
-  <input type="hidden" name="habit_uuid" value="{{.Habit.UUID}}">
+  {{ method_field "DELETE" }}
   <select name="date">
     {{range .Checks}}
       <option value="{{.Date}}">{{.Date}}</option>
