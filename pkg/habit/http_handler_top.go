@@ -2,11 +2,9 @@ package habit
 
 import (
 	"fmt"
-	"html/template"
 	"net/http"
 	"sort"
 
-	"firebase.google.com/go/auth"
 	"github.com/gorilla/csrf"
 )
 
@@ -59,19 +57,10 @@ func (h *HTTPHandler) showTopPage(w http.ResponseWriter, r *http.Request) {
 		habits2 = append(habits2, h2)
 	}
 
-	w.WriteHeader(http.StatusOK)
-	if err := h.tmpls["top.html"].Execute(w, struct {
-		CSRFHiddenInput template.HTML
-		User            *auth.UserInfo
-		Habits          []*habit2
-		ArchivedHabits  []*DynamoHabit
-	}{
-		CSRFHiddenInput: csrf.TemplateField(r),
-		User:            userRec.UserInfo,
-		Habits:          habits2,
-		ArchivedHabits:  archivedHabits,
-	}); err != nil {
-		h.handleError(w, r, fmt.Errorf("write top page: %w", err))
-		return
-	}
+	h.writePage(w, r, http.StatusOK, TemplatePageTop, map[string]interface{}{
+		"CSRFHiddenInput": csrf.TemplateField(r),
+		"User":            userRec.UserInfo,
+		"Habits":          habits2,
+		"ArchivedHabits":  archivedHabits,
+	})
 }

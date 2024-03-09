@@ -2,7 +2,6 @@ package habit
 
 import (
 	"fmt"
-	"html/template"
 	"net/http"
 	"time"
 
@@ -10,15 +9,9 @@ import (
 )
 
 func (h *HTTPHandler) showLoginPage(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-	if err := h.tmpls["login.html"].Execute(w, struct {
-		CSRFHiddenInput template.HTML
-	}{
-		CSRFHiddenInput: csrf.TemplateField(r),
-	}); err != nil {
-		h.handleError(w, r, fmt.Errorf("write login page: %w", err))
-		return
-	}
+	h.writePage(w, r, http.StatusOK, TemplatePageLogin, map[string]interface{}{
+		"CSRFHiddenInput": csrf.TemplateField(r),
+	})
 }
 
 func (h *HTTPHandler) logout(w http.ResponseWriter, r *http.Request) {

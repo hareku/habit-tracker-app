@@ -1,8 +1,9 @@
 package habit
 
 import (
-	"embed"
+	"bytes"
 	"errors"
+	"fmt"
 	"html/template"
 	"log/slog"
 	"net/http"
@@ -12,9 +13,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	slogchi "github.com/samber/slog-chi"
 )
-
-//go:embed templates/*
-var templates embed.FS
 
 type NewHTTPHandlerInput struct {
 	AuthMiddleware Middleware
@@ -30,7 +28,7 @@ type HTTPHandler struct {
 	Secure        bool
 
 	mux   *chi.Mux
-	tmpls map[string]*template.Template
+	tmpls map[TypeTemplatePage]*template.Template
 }
 
 func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
@@ -41,10 +39,9 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 	}
 
 	common := template.Must(template.ParseFS(templates, "templates/_*.html"))
-	tmpls := map[string]*template.Template{}
-	pages := []string{"top.html", "login.html", "habit.html"}
-	for _, page := range pages {
-		tmpls[page] = template.Must(
+	tmpls := map[TypeTemplatePage]*template.Template{}
+	for _, page := range ListPages() {
+		tmpls[TypeTemplatePage(page)] = template.Must(
 			template.Must(common.Clone()).
 				ParseFS(templates, path.Join("templates", page)),
 		)
@@ -94,4 +91,18 @@ func (h *HTTPHandler) handleError(w http.ResponseWriter, r *http.Request, err er
 
 	slog.ErrorContext(r.Context(), err.Error())
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+}
+
+func (h *HTTPHandler) writePage(w http.ResponseWriter, r *http.Request, status int, page TypeTemplatePage, data interface{}) {
+	var buf bytes.Buffer // write to buffer first to prevent partial writes
+	if err := h.tmpls[page].Execute(&buf, data); err != nil {
+		h.handleError(w, r, fmt.Errorf("execute template: %w", err))
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	if _, err := buf.WriteTo(w); err != nil {
+		h.handleError(w, r, fmt.Errorf("write page to response: %w", err))
+	}
 }
