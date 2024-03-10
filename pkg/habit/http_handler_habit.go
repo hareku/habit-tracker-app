@@ -11,7 +11,10 @@ import (
 )
 
 func (h *HTTPHandler) showHabitPage(w http.ResponseWriter, r *http.Request) {
-	hid := h.mustHabitUUID(r)
+	hid, ok := h.extractHabitUUID(w, r)
+	if !ok {
+		return
+	}
 
 	ctx := r.Context()
 	uid := MustGetUserID(ctx)

@@ -64,14 +64,14 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 	r.Group(func(r chi.Router) {
 		r.Use(in.AuthMiddleware)
 		r.Get("/", h.showTopPage)
-		r.Get("/habits/{habitUUID}", h.showHabitPage)
+		r.Get(fmt.Sprintf("/habits/{%s}", URLParamHabitUUID), h.showHabitPage)
 		r.Post("/habits", h.createHabit)
 		r.Post("/checks", h.createCheck)
 		r.Post("/update-habit", h.updateHabit)
 		r.Post("/archive-habit", h.archiveHabit)
 		r.Post("/unarchive-habit", h.unarchiveHabit)
 		r.Post("/delete-habit", h.deleteHabit)
-		r.Delete("/habits/{habitUUID}/checks", h.deleteCheck)
+		r.Delete(fmt.Sprintf("/habits/{%s}/checks", URLParamHabitUUID), h.deleteCheck)
 		r.Post("/logout", h.logout)
 		r.Post("/delete-account", h.deleteAccount)
 	})
@@ -120,10 +120,23 @@ func (h *HTTPHandler) writePage(w http.ResponseWriter, r *http.Request, status i
 		h.handleError(w, r, fmt.Errorf("write page to response: %w", err))
 	}
 }
-func (h *HTTPHandler) mustHabitUUID(r *http.Request) uuid.UUID {
-	str := chi.URLParam(r, "habitUUID")
+
+// extractHabitUUID extracts URLParamHabitUUID from URL path and returns it.
+// If URLParamHabitUUID is empty or invalid, it writes an error response and returns false.
+func (h *HTTPHandler) extractHabitUUID(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
+	str := chi.URLParam(r, URLParamHabitUUID)
 	if str == "" {
-		panic("habitUUID is empty")
+		h.handleError(w, r, fmt.Errorf("%q is empty: %w", URLParamHabitUUID, ErrNotFound))
+		return uuid.Nil, false
 	}
-	return uuid.MustParse(str)
+	v, err := uuid.Parse(str)
+	if err != nil {
+		h.handleError(w, r, fmt.Errorf("parse %q failed %q: %w", URLParamHabitUUID, err, ErrNotFound))
+		return uuid.Nil, false
+	}
+	return v, true
 }
+
+const (
+	URLParamHabitUUID = "habitUUID"
+)

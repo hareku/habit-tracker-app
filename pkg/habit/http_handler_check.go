@@ -34,9 +34,13 @@ func (h *HTTPHandler) createCheck(w http.ResponseWriter, r *http.Request) {
 func (h *HTTPHandler) deleteCheck(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
+	hid, ok := h.extractHabitUUID(w, r)
+	if !ok {
+		return
+	}
+
 	ctx := r.Context()
 	uid := MustGetUserID(ctx)
-	hid := h.mustHabitUUID(r)
 	date := r.PostFormValue("date")
 
 	err := h.Repository.DeleteCheck(ctx, uid, hid, date)
