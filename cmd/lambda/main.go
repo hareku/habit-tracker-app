@@ -17,13 +17,14 @@ import (
 	"github.com/hareku/habit-tracker-app/pkg/habit"
 )
 
-//go:embed .secrets/habittrackerapp-cred.json
-var googleCred []byte
-
-//go:embed .secrets/csrf-token.key
-var csrfKey []byte
-
-var handler *httpadapter.HandlerAdapter
+var (
+	//go:embed .secrets/habittrackerapp-cred.json
+	googleCred []byte
+	//go:embed .secrets/csrf-token.key
+	csrfKey []byte
+	// handler is the main handler for the lambda function
+	handler *httpadapter.HandlerAdapter
+)
 
 func init() {
 	slog.SetDefault(slog.New(
@@ -39,7 +40,7 @@ func init() {
 	var err error
 	handler, err = newHandler(ctx)
 	if err != nil {
-		slog.Error(fmt.Errorf("init handler: %w", err).Error())
+		slog.ErrorContext(ctx, fmt.Errorf("init handler: %w", err).Error())
 		os.Exit(1)
 	}
 }
