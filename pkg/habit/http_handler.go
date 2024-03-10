@@ -102,8 +102,14 @@ func (h *HTTPHandler) handleError(w http.ResponseWriter, r *http.Request, err er
 }
 
 func (h *HTTPHandler) writePage(w http.ResponseWriter, r *http.Request, status int, page TypeTemplatePage, data interface{}) {
+	tmpl, ok := h.tmpls[page]
+	if !ok {
+		h.handleError(w, r, fmt.Errorf("template not found: %s", page))
+		return
+	}
+
 	var buf bytes.Buffer // write to buffer first to prevent partial writes
-	if err := h.tmpls[page].Execute(&buf, data); err != nil {
+	if err := tmpl.Execute(&buf, data); err != nil {
 		h.handleError(w, r, fmt.Errorf("execute template: %w", err))
 		return
 	}
