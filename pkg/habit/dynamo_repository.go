@@ -475,7 +475,7 @@ func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid
 	}); err != nil {
 		var tce *types.TransactionCanceledException
 		if errors.As(err, &tce) && *tce.CancellationReasons[0].Code == string(types.BatchStatementErrorCodeEnumConditionalCheckFailed) {
-			return nil, fmt.Errorf("condition check failed %+v: %w", tce, ErrConflict)
+			return nil, fmt.Errorf("condition check failed %w: %w", ErrConflict, tce)
 		}
 
 		return nil, fmt.Errorf("transact write items: %w", err)
@@ -528,7 +528,7 @@ func (r *DynamoRepository) DeleteCheck(ctx context.Context, uid UserID, hid uuid
 	}); err != nil {
 		var tce *types.TransactionCanceledException
 		if errors.As(err, &tce) && *tce.CancellationReasons[0].Code == string(types.BatchStatementErrorCodeEnumConditionalCheckFailed) {
-			return fmt.Errorf("condition check failed %+v: %w", tce, ErrNotFound)
+			return fmt.Errorf("condition check failed: %w: %w", ErrNotFound, tce)
 		}
 
 		return fmt.Errorf("transact write items: %w", err)
