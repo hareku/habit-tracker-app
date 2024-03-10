@@ -2,6 +2,7 @@ package habit
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -13,7 +14,10 @@ import (
 	"github.com/google/uuid"
 )
 
-var ErrNotFound = fmt.Errorf("not found")
+var (
+	ErrNotFound = fmt.Errorf("not found")
+	ErrConflict = fmt.Errorf("conflict")
+)
 
 type DynamoRepository struct {
 	Client    *dynamodb.Client
@@ -435,15 +439,27 @@ func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid
 	update := expression.Set(expression.Name("ChecksCount"), expression.Name("ChecksCount").Plus(expression.Value(1)))
 	updateExpr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
-		return nil, fmt.Errorf("build expression: %w", err)
+		return nil, fmt.Errorf("build update expression: %w", err)
+	}
+
+	condition := expression.Not(
+		expression.AttributeExists(expression.Name("PK")).
+			And(expression.AttributeExists(expression.Name("SK"))),
+	)
+	conditionExpr, err := expression.NewBuilder().WithCondition(condition).Build()
+	if err != nil {
+		return nil, fmt.Errorf("build condition expression: %w", err)
 	}
 
 	if _, err := r.Client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
 		TransactItems: []types.TransactWriteItem{
 			{
 				Put: &types.Put{
-					TableName: &r.TableName,
-					Item:      item,
+					TableName:                 &r.TableName,
+					Item:                      item,
+					ConditionExpression:       conditionExpr.Condition(),
+					ExpressionAttributeNames:  conditionExpr.Names(),
+					ExpressionAttributeValues: conditionExpr.Values(),
 				},
 			},
 			{
@@ -457,6 +473,11 @@ func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid
 			},
 		},
 	}); err != nil {
+		var tce *types.TransactionCanceledException
+		if errors.As(err, &tce) && *tce.CancellationReasons[0].Code == string(types.BatchStatementErrorCodeEnumConditionalCheckFailed) {
+			return nil, fmt.Errorf("condition check failed %+v: %w", tce, ErrConflict)
+		}
+
 		return nil, fmt.Errorf("transact write items: %w", err)
 	}
 
@@ -478,6 +499,7 @@ func (r *DynamoRepository) DeleteCheck(ctx context.Context, uid UserID, hid uuid
 
 	if _, err := r.Client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
 		TransactItems: []types.TransactWriteItem{
+			// TODO: check condition that the item exists
 			{
 				Delete: &types.Delete{
 					TableName: &r.TableName,
