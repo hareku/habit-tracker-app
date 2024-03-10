@@ -96,6 +96,10 @@ func (h *HTTPHandler) handleError(w http.ResponseWriter, r *http.Request, err er
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
+	if errors.Is(err, ErrConflict) {
+		http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
+		return
+	}
 
 	slog.ErrorContext(r.Context(), err.Error())
 	http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
