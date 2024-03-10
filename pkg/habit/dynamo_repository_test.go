@@ -130,6 +130,30 @@ func Test_CreateCheck_Twice(t *testing.T) {
 	require.Equal(t, 1, h1.ChecksCount)
 }
 
+func Test_DeleteCheck_Twice(t *testing.T) {
+	repo := newDynamoRepositoryTest(t)
+	ctx := context.Background()
+
+	myUserID := UserID("MyUserID")
+
+	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
+	require.NoError(t, err)
+
+	c1, err := repo.CreateCheck(ctx, myUserID, uuid.MustParse(h1.UUID), "2000-01-01")
+	require.NoError(t, err)
+	require.NoError(t, repo.DeleteCheck(ctx, myUserID, uuid.MustParse(h1.UUID), c1.Date))
+
+	h1, err = repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
+	require.NoError(t, err)
+	require.Equal(t, 0, h1.ChecksCount)
+
+	require.ErrorIs(t, repo.DeleteCheck(ctx, myUserID, uuid.MustParse(h1.UUID), c1.Date), ErrNotFound)
+
+	h1, err = repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
+	require.NoError(t, err)
+	require.Equal(t, 0, h1.ChecksCount)
+}
+
 func Test_ListLatestChecksWithLimit(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
 	ctx := context.Background()

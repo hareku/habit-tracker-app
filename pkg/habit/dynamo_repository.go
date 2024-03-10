@@ -494,16 +494,25 @@ func (r *DynamoRepository) DeleteCheck(ctx context.Context, uid UserID, hid uuid
 	update := expression.Set(expression.Name("ChecksCount"), expression.Name("ChecksCount").Plus(expression.Value(-1)))
 	updateExpr, err := expression.NewBuilder().WithUpdate(update).Build()
 	if err != nil {
-		return fmt.Errorf("build expression: %w", err)
+		return fmt.Errorf("build update expression: %w", err)
+	}
+
+	condition := expression.AttributeExists(expression.Name("PK")).
+		And(expression.AttributeExists(expression.Name("SK")))
+	conditionExpr, err := expression.NewBuilder().WithCondition(condition).Build()
+	if err != nil {
+		return fmt.Errorf("build condition expression: %w", err)
 	}
 
 	if _, err := r.Client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
 		TransactItems: []types.TransactWriteItem{
-			// TODO: check condition that the item exists
 			{
 				Delete: &types.Delete{
-					TableName: &r.TableName,
-					Key:       c.GetKey(),
+					TableName:                 &r.TableName,
+					Key:                       c.GetKey(),
+					ConditionExpression:       conditionExpr.Condition(),
+					ExpressionAttributeNames:  conditionExpr.Names(),
+					ExpressionAttributeValues: conditionExpr.Values(),
 				},
 			},
 			{
@@ -517,6 +526,11 @@ func (r *DynamoRepository) DeleteCheck(ctx context.Context, uid UserID, hid uuid
 			},
 		},
 	}); err != nil {
+		var tce *types.TransactionCanceledException
+		if errors.As(err, &tce) && *tce.CancellationReasons[0].Code == string(types.BatchStatementErrorCodeEnumConditionalCheckFailed) {
+			return fmt.Errorf("condition check failed %+v: %w", tce, ErrNotFound)
+		}
+
 		return fmt.Errorf("transact write items: %w", err)
 	}
 	return nil
