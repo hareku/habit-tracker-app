@@ -1,4 +1,4 @@
-package habit
+package api
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/gorilla/csrf"
+	"github.com/hareku/habit-tracker-app/internal/auth"
 )
 
 func (h *HTTPHandler) showLoginPage(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +26,7 @@ func (h *HTTPHandler) logout(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HTTPHandler) deleteAccount(w http.ResponseWriter, r *http.Request) {
-	if err := h.Authenticator.DeleteUser(r.Context(), MustGetUserID(r.Context())); err != nil {
+	if err := h.Authenticator.DeleteUser(r.Context(), auth.MustGetUserID(r.Context())); err != nil {
 		h.handleError(w, r, fmt.Errorf("delete account: %w", err))
 		return
 	}

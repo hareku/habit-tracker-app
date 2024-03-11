@@ -1,4 +1,4 @@
-package habit
+package api
 
 import (
 	"fmt"
@@ -6,11 +6,13 @@ import (
 	"sort"
 
 	"github.com/gorilla/csrf"
+	"github.com/hareku/habit-tracker-app/internal/auth"
+	"github.com/hareku/habit-tracker-app/internal/repository"
 )
 
 func (h *HTTPHandler) showTopPage(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	uid := MustGetUserID(ctx)
+	uid := auth.MustGetUserID(ctx)
 	userRec, err := h.Authenticator.GetUser(ctx, uid)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -33,8 +35,8 @@ func (h *HTTPHandler) showTopPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	type habit2 struct {
-		*DynamoHabit
-		LatestCheck *DynamoCheck
+		*repository.DynamoHabit
+		LatestCheck *repository.DynamoCheck
 	}
 	var habits2 []*habit2
 

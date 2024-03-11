@@ -1,4 +1,4 @@
-package habit
+package applog
 
 import (
 	"context"

@@ -1,4 +1,4 @@
-package habit
+package auth
 
 import (
 	"context"
@@ -10,6 +10,7 @@ import (
 	"google.golang.org/api/option"
 )
 
+// FirebaseAuthenticator is a authenticator for Firebase.
 type FirebaseAuthenticator struct {
 	client *auth.Client
 }
@@ -28,6 +29,7 @@ func NewFirebaseAuthenticator(cred []byte) (*FirebaseAuthenticator, error) {
 	return &FirebaseAuthenticator{client}, nil
 }
 
+// Authenticate returns a new context with the user ID if the session is valid.
 func (f *FirebaseAuthenticator) Authenticate(ctx context.Context, session string) (context.Context, error) {
 	tk, err := f.client.VerifySessionCookieAndCheckRevoked(ctx, session)
 	if err != nil {
@@ -37,14 +39,17 @@ func (f *FirebaseAuthenticator) Authenticate(ctx context.Context, session string
 	return SetUserID(ctx, UserID(tk.UID)), nil
 }
 
+// VerifyIDToken returns a new session if the ID token is valid.
 func (f *FirebaseAuthenticator) SessionCookie(ctx context.Context, idToken string) (string, error) {
 	return f.client.SessionCookie(ctx, idToken, time.Hour*24*14)
 }
 
+// DeleteUser deletes the user from Firebase.
 func (f *FirebaseAuthenticator) DeleteUser(ctx context.Context, uid UserID) error {
 	return f.client.DeleteUser(ctx, string(uid))
 }
 
+// GetUser returns the user from Firebase.
 func (f *FirebaseAuthenticator) GetUser(ctx context.Context, uid UserID) (*auth.UserRecord, error) {
 	return f.client.GetUser(ctx, string(uid))
 }

@@ -14,7 +14,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/awslabs/aws-lambda-go-api-proxy/httpadapter"
-	"github.com/hareku/habit-tracker-app/pkg/habit"
+	"github.com/hareku/habit-tracker-app/internal/api"
+	"github.com/hareku/habit-tracker-app/internal/applog"
+	"github.com/hareku/habit-tracker-app/internal/auth"
+	"github.com/hareku/habit-tracker-app/internal/repository"
 )
 
 var (
@@ -28,7 +31,7 @@ var (
 
 func init() {
 	slog.SetDefault(slog.New(
-		habit.NewContextValueLogHandler(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
+		applog.NewContextValueLogHandler(slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{
 			AddSource: true,
 			Level:     slog.LevelInfo,
 		})),
@@ -46,7 +49,7 @@ func init() {
 }
 
 func newHandler(ctx context.Context) (*httpadapter.HandlerAdapter, error) {
-	fa, err := habit.NewFirebaseAuthenticator(googleCred)
+	fa, err := auth.NewFirebaseAuthenticator(googleCred)
 	if err != nil {
 		return nil, fmt.Errorf("init firebase authenticator: %w", err)
 	}
@@ -67,11 +70,11 @@ func newHandler(ctx context.Context) (*httpadapter.HandlerAdapter, error) {
 		slog.Info("Loaded AWS_ENDPOINT env", slog.String("endpoint", e))
 	}
 
-	return httpadapter.New(habit.NewHTTPHandler(&habit.NewHTTPHandlerInput{
-		AuthMiddleware: habit.NewAuthMiddleware(fa),
-		CSRFMiddleware: habit.NewCSRFMiddleware(csrfKey, secure),
+	return httpadapter.New(api.NewHTTPHandler(&api.NewHTTPHandlerInput{
+		AuthMiddleware: api.NewAuthMiddleware(fa),
+		CSRFMiddleware: api.NewCSRFMiddleware(csrfKey, secure),
 		Authenticator:  fa,
-		Repository: &habit.DynamoRepository{
+		Repository: &repository.DynamoRepository{
 			Client:    dynamodb.NewFromConfig(cfg),
 			TableName: "HabitTrackerApp",
 		},

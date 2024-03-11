@@ -1,4 +1,4 @@
-package habit
+package api
 
 import (
 	"bytes"
@@ -13,20 +13,23 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
 	formmethod "github.com/hareku/form-method-go"
+	"github.com/hareku/habit-tracker-app/internal/apperrors"
+	"github.com/hareku/habit-tracker-app/internal/auth"
+	"github.com/hareku/habit-tracker-app/internal/repository"
 	slogchi "github.com/samber/slog-chi"
 )
 
 type NewHTTPHandlerInput struct {
 	AuthMiddleware Middleware
 	CSRFMiddleware Middleware
-	Authenticator  *FirebaseAuthenticator
-	Repository     *DynamoRepository
+	Authenticator  *auth.FirebaseAuthenticator
+	Repository     *repository.DynamoRepository
 	Secure         bool
 }
 
 type HTTPHandler struct {
-	Authenticator *FirebaseAuthenticator
-	Repository    *DynamoRepository
+	Authenticator *auth.FirebaseAuthenticator
+	Repository    *repository.DynamoRepository
 	Secure        bool
 
 	mux   *chi.Mux
@@ -92,11 +95,11 @@ func (h *HTTPHandler) redirect(w http.ResponseWriter, loc string) {
 }
 
 func (h *HTTPHandler) handleError(w http.ResponseWriter, r *http.Request, err error) {
-	if errors.Is(err, ErrNotFound) {
+	if errors.Is(err, apperrors.ErrNotFound) {
 		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 		return
 	}
-	if errors.Is(err, ErrConflict) {
+	if errors.Is(err, apperrors.ErrConflict) {
 		http.Error(w, http.StatusText(http.StatusConflict), http.StatusConflict)
 		return
 	}
@@ -130,12 +133,12 @@ func (h *HTTPHandler) writePage(w http.ResponseWriter, r *http.Request, status i
 func (h *HTTPHandler) extractHabitUUID(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
 	str := chi.URLParam(r, URLParamHabitUUID)
 	if str == "" {
-		h.handleError(w, r, fmt.Errorf("%q is empty: %w", URLParamHabitUUID, ErrNotFound))
+		h.handleError(w, r, fmt.Errorf("%q is empty: %w", URLParamHabitUUID, apperrors.ErrNotFound))
 		return uuid.Nil, false
 	}
 	v, err := uuid.Parse(str)
 	if err != nil {
-		h.handleError(w, r, fmt.Errorf("parse %q failed %q: %w", URLParamHabitUUID, err, ErrNotFound))
+		h.handleError(w, r, fmt.Errorf("parse %q failed %q: %w", URLParamHabitUUID, err, apperrors.ErrNotFound))
 		return uuid.Nil, false
 	}
 	return v, true

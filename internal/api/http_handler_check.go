@@ -1,4 +1,4 @@
-package habit
+package api
 
 import (
 	"fmt"
@@ -6,13 +6,14 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/hareku/habit-tracker-app/internal/auth"
 )
 
 func (h *HTTPHandler) createCheck(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
 	ctx := r.Context()
-	uid := MustGetUserID(ctx)
+	uid := auth.MustGetUserID(ctx)
 	hid := uuid.MustParse(r.PostFormValue("habit_uuid"))
 
 	date := r.PostFormValue("date")
@@ -40,7 +41,7 @@ func (h *HTTPHandler) deleteCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	uid := MustGetUserID(ctx)
+	uid := auth.MustGetUserID(ctx)
 	date := r.PostFormValue("date")
 
 	err := h.Repository.DeleteCheck(ctx, uid, hid, date)

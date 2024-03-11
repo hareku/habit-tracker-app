@@ -1,4 +1,4 @@
-package habit
+package repository
 
 import (
 	"context"
@@ -11,6 +11,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/google/uuid"
 	"github.com/hareku/habit-tracker-app/dynamoconf"
+	"github.com/hareku/habit-tracker-app/internal/apperrors"
+	"github.com/hareku/habit-tracker-app/internal/auth"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -50,8 +52,8 @@ func Test_AllHabits(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
 	ctx := context.Background()
 
-	myUserID := UserID("MyUserID")
-	otherUserID := UserID("OtherUserID")
+	myUserID := auth.UserID("MyUserID")
+	otherUserID := auth.UserID("OtherUserID")
 
 	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
 	require.NoError(t, err)
@@ -75,7 +77,7 @@ func Test_FindHabit(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
 	ctx := context.Background()
 
-	myUserID := UserID("MyUserID")
+	myUserID := auth.UserID("MyUserID")
 
 	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
 	require.NoError(t, err)
@@ -91,7 +93,7 @@ func Test_DeleteHabit(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
 	ctx := context.Background()
 
-	myUserID := UserID("MyUserID")
+	myUserID := auth.UserID("MyUserID")
 
 	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
 	require.NoError(t, err)
@@ -103,7 +105,7 @@ func Test_DeleteHabit(t *testing.T) {
 
 	got1, err := repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
 	require.Error(t, err, "Got habit1: %+v", got1)
-	require.ErrorIs(t, err, ErrNotFound)
+	require.ErrorIs(t, err, apperrors.ErrNotFound)
 
 	got2, err := repo.FindHabit(ctx, myUserID, uuid.MustParse(h2.UUID))
 	require.NoError(t, err)
@@ -114,7 +116,7 @@ func Test_CreateCheck_Twice(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
 	ctx := context.Background()
 
-	myUserID := UserID("MyUserID")
+	myUserID := auth.UserID("MyUserID")
 
 	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
 	require.NoError(t, err)
@@ -123,7 +125,7 @@ func Test_CreateCheck_Twice(t *testing.T) {
 	require.NoError(t, err)
 	_, err = repo.CreateCheck(ctx, myUserID, uuid.MustParse(h1.UUID), c1.Date)
 	require.Error(t, err)
-	require.ErrorIs(t, err, ErrConflict)
+	require.ErrorIs(t, err, apperrors.ErrConflict)
 
 	h1, err = repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
 	require.NoError(t, err)
@@ -134,7 +136,7 @@ func Test_DeleteCheck_Twice(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
 	ctx := context.Background()
 
-	myUserID := UserID("MyUserID")
+	myUserID := auth.UserID("MyUserID")
 
 	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
 	require.NoError(t, err)
@@ -147,7 +149,7 @@ func Test_DeleteCheck_Twice(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, 0, h1.ChecksCount)
 
-	require.ErrorIs(t, repo.DeleteCheck(ctx, myUserID, uuid.MustParse(h1.UUID), c1.Date), ErrNotFound)
+	require.ErrorIs(t, repo.DeleteCheck(ctx, myUserID, uuid.MustParse(h1.UUID), c1.Date), apperrors.ErrNotFound)
 
 	h1, err = repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
 	require.NoError(t, err)
@@ -158,7 +160,7 @@ func Test_ListLatestChecksWithLimit(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
 	ctx := context.Background()
 
-	myUserID := UserID("MyUserID")
+	myUserID := auth.UserID("MyUserID")
 
 	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
 	require.NoError(t, err)

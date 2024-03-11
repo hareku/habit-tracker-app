@@ -1,14 +1,15 @@
-package habit
+package api
 
 import (
 	"net/http"
 
 	"github.com/gorilla/csrf"
+	"github.com/hareku/habit-tracker-app/internal/auth"
 )
 
 type Middleware func(next http.Handler) http.Handler
 
-func NewAuthMiddleware(authenticator *FirebaseAuthenticator) Middleware {
+func NewAuthMiddleware(authenticator *auth.FirebaseAuthenticator) Middleware {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			sess, err := r.Cookie("session")

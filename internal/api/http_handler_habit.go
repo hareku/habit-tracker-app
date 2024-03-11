@@ -1,4 +1,4 @@
-package habit
+package api
 
 import (
 	"fmt"
@@ -8,6 +8,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/csrf"
+	"github.com/hareku/habit-tracker-app/internal/auth"
+	"github.com/hareku/habit-tracker-app/internal/repository"
 )
 
 func (h *HTTPHandler) showHabitPage(w http.ResponseWriter, r *http.Request) {
@@ -17,7 +19,7 @@ func (h *HTTPHandler) showHabitPage(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ctx := r.Context()
-	uid := MustGetUserID(ctx)
+	uid := auth.MustGetUserID(ctx)
 	userRec, err := h.Authenticator.GetUser(ctx, uid)
 	if err != nil {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -53,7 +55,7 @@ func (h *HTTPHandler) showHabitPage(w http.ResponseWriter, r *http.Request) {
 
 func (h *HTTPHandler) createHabit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	uid := MustGetUserID(ctx)
+	uid := auth.MustGetUserID(ctx)
 
 	title := r.PostFormValue("title")
 	cnt := utf8.RuneCountInString(title)
@@ -74,8 +76,8 @@ func (h *HTTPHandler) createHabit(w http.ResponseWriter, r *http.Request) {
 func (h *HTTPHandler) updateHabit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	in := DynamoRepositoryUpdateHabitInput{
-		UserID:    MustGetUserID(ctx),
+	in := repository.DynamoRepositoryUpdateHabitInput{
+		UserID:    auth.MustGetUserID(ctx),
 		HabitUUID: uuid.MustParse(r.PostFormValue("habit_uuid")),
 	}
 
@@ -97,7 +99,7 @@ func (h *HTTPHandler) updateHabit(w http.ResponseWriter, r *http.Request) {
 
 func (h *HTTPHandler) deleteHabit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	uid := MustGetUserID(ctx)
+	uid := auth.MustGetUserID(ctx)
 	hid := uuid.MustParse(r.PostFormValue("habit_uuid"))
 
 	err := h.Repository.DeleteHabit(ctx, uid, hid)

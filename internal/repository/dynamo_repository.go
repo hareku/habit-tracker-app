@@ -1,4 +1,4 @@
-package habit
+package repository
 
 import (
 	"context"
@@ -12,11 +12,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 	"github.com/google/uuid"
-)
-
-var (
-	ErrNotFound = fmt.Errorf("not found")
-	ErrConflict = fmt.Errorf("conflict")
+	"github.com/hareku/habit-tracker-app/internal/apperrors"
+	"github.com/hareku/habit-tracker-app/internal/auth"
 )
 
 type DynamoRepository struct {
@@ -28,14 +25,14 @@ type DynamoHabit struct {
 	PK          string
 	SK          string
 	UUID        string
-	UserID      UserID
+	UserID      auth.UserID
 	Title       string
 	ChecksCount int
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
 
-func NewDynamoHabit(userID UserID, habitUUID uuid.UUID) *DynamoHabit {
+func NewDynamoHabit(userID auth.UserID, habitUUID uuid.UUID) *DynamoHabit {
 	return &DynamoHabit{
 		PK:     fmt.Sprintf("USER#%s", userID),
 		SK:     fmt.Sprintf("HABITS#%s", habitUUID),
@@ -68,7 +65,7 @@ type DynamoCheck struct {
 	UpdatedAt      time.Time
 }
 
-func NewDynamoCheck(userID UserID, habitUUID uuid.UUID, date string) *DynamoCheck {
+func NewDynamoCheck(userID auth.UserID, habitUUID uuid.UUID, date string) *DynamoCheck {
 	return &DynamoCheck{
 		PK:             fmt.Sprintf("USER#%s", userID),
 		SK:             fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", habitUUID, date),
@@ -92,7 +89,7 @@ func (h *DynamoCheck) GetKey() map[string]types.AttributeValue {
 	return map[string]types.AttributeValue{"PK": pk, "SK": sk}
 }
 
-func (r *DynamoRepository) AllHabits(ctx context.Context, uid UserID) ([]*DynamoHabit, error) {
+func (r *DynamoRepository) AllHabits(ctx context.Context, uid auth.UserID) ([]*DynamoHabit, error) {
 	expr, err := expression.NewBuilder().
 		WithKeyCondition(
 			expression.Key("PK").Equal(expression.Value(fmt.Sprintf("USER#%s", uid))).
@@ -127,7 +124,7 @@ func (r *DynamoRepository) AllHabits(ctx context.Context, uid UserID) ([]*Dynamo
 	return habits, nil
 }
 
-func (r *DynamoRepository) AllArchivedHabits(ctx context.Context, uid UserID) ([]*DynamoHabit, error) {
+func (r *DynamoRepository) AllArchivedHabits(ctx context.Context, uid auth.UserID) ([]*DynamoHabit, error) {
 	expr, err := expression.NewBuilder().
 		WithKeyCondition(
 			expression.Key("PK").Equal(expression.Value(fmt.Sprintf("USER#%s", uid))).
@@ -162,7 +159,7 @@ func (r *DynamoRepository) AllArchivedHabits(ctx context.Context, uid UserID) ([
 	return habits, nil
 }
 
-func (r *DynamoRepository) FindHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
+func (r *DynamoRepository) FindHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*DynamoHabit, error) {
 	h := NewDynamoHabit(uid, hid)
 	expr, err := expression.NewBuilder().
 		WithKeyCondition(
@@ -195,10 +192,10 @@ func (r *DynamoRepository) FindHabit(ctx context.Context, uid UserID, hid uuid.U
 			return pageItems[0], nil
 		}
 	}
-	return nil, ErrNotFound
+	return nil, apperrors.ErrNotFound
 }
 
-func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
+func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*DynamoHabit, error) {
 	var habit *DynamoHabit
 	habit.PK = fmt.Sprintf("USER#%s", uid)
 	habit.SK = fmt.Sprintf("ARCHIVED_HABITS#%s", hid)
@@ -217,7 +214,7 @@ func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid UserID, hi
 	return habit, nil
 }
 
-func (r *DynamoRepository) CreateHabit(ctx context.Context, uid UserID, title string) (*DynamoHabit, error) {
+func (r *DynamoRepository) CreateHabit(ctx context.Context, uid auth.UserID, title string) (*DynamoHabit, error) {
 	h := NewDynamoHabit(uid, uuid.New())
 	h.Title = title
 	h.CreatedAt = time.Now().Round(time.Nanosecond)
@@ -242,7 +239,7 @@ func (r *DynamoRepository) CreateHabit(ctx context.Context, uid UserID, title st
 	return h, nil
 }
 
-func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid UserID, hid uuid.UUID) error {
+func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) error {
 	_, err := r.Client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
 		TableName: &r.TableName,
 		Key:       NewDynamoHabit(uid, hid).GetKey(),
@@ -253,7 +250,7 @@ func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid UserID, hid uuid
 	return nil
 }
 
-func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
+func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*DynamoHabit, error) {
 	h, err := r.FindHabit(ctx, uid, hid)
 	if err != nil {
 		return nil, fmt.Errorf("find a habit [%s]: %w", hid, err)
@@ -289,7 +286,7 @@ func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid UserID, hid uui
 }
 
 type DynamoRepositoryUpdateHabitInput struct {
-	UserID    UserID
+	UserID    auth.UserID
 	HabitUUID uuid.UUID
 	Title     string
 }
@@ -316,7 +313,7 @@ func (r *DynamoRepository) UpdateHabit(ctx context.Context, in *DynamoRepository
 	return nil
 }
 
-func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid UserID, hid uuid.UUID) (*DynamoHabit, error) {
+func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*DynamoHabit, error) {
 	h, err := r.FindArchivedHabit(ctx, uid, hid)
 	if err != nil {
 		return nil, fmt.Errorf("find a habit [%s]: %w", hid, err)
@@ -352,7 +349,7 @@ func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid UserID, hid u
 	return h, nil
 }
 
-func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid UserID, hid uuid.UUID, limit int32) ([]*DynamoCheck, error) {
+func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid auth.UserID, hid uuid.UUID, limit int32) ([]*DynamoCheck, error) {
 	expr, err := expression.NewBuilder().
 		WithKeyCondition(
 			expression.Key("PK").Equal(expression.Value(fmt.Sprintf("USER#%s", uid))).
@@ -384,7 +381,7 @@ func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid Us
 	return pageItems, nil
 }
 
-func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, uid UserID) ([]*DynamoCheck, error) {
+func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, uid auth.UserID) ([]*DynamoCheck, error) {
 	minTime := time.Now().Add(time.Hour * 24 * 7 * -1).Format("2006-01-02")
 
 	expr, err := expression.NewBuilder().
@@ -424,7 +421,7 @@ func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, ui
 	return checks, nil
 }
 
-func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid.UUID, date string) (*DynamoCheck, error) {
+func (r *DynamoRepository) CreateCheck(ctx context.Context, uid auth.UserID, hid uuid.UUID, date string) (*DynamoCheck, error) {
 	c := NewDynamoCheck(uid, hid, date)
 	c.CreatedAt = time.Now().Round(time.Nanosecond)
 	c.UpdatedAt = c.CreatedAt
@@ -475,7 +472,7 @@ func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid
 	}); err != nil {
 		var tce *types.TransactionCanceledException
 		if errors.As(err, &tce) && *tce.CancellationReasons[0].Code == string(types.BatchStatementErrorCodeEnumConditionalCheckFailed) {
-			return nil, fmt.Errorf("condition check failed %w: %w", ErrConflict, tce)
+			return nil, fmt.Errorf("condition check failed %w: %w", apperrors.ErrConflict, tce)
 		}
 
 		return nil, fmt.Errorf("transact write items: %w", err)
@@ -484,7 +481,7 @@ func (r *DynamoRepository) CreateCheck(ctx context.Context, uid UserID, hid uuid
 	return c, nil
 }
 
-func (r *DynamoRepository) DeleteCheck(ctx context.Context, uid UserID, hid uuid.UUID, date string) error {
+func (r *DynamoRepository) DeleteCheck(ctx context.Context, uid auth.UserID, hid uuid.UUID, date string) error {
 	c := &DynamoCheck{
 		PK: fmt.Sprintf("USER#%s", uid),
 		SK: fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", hid, date),
@@ -528,7 +525,7 @@ func (r *DynamoRepository) DeleteCheck(ctx context.Context, uid UserID, hid uuid
 	}); err != nil {
 		var tce *types.TransactionCanceledException
 		if errors.As(err, &tce) && *tce.CancellationReasons[0].Code == string(types.BatchStatementErrorCodeEnumConditionalCheckFailed) {
-			return fmt.Errorf("condition check failed: %w: %w", ErrNotFound, tce)
+			return fmt.Errorf("condition check failed: %w: %w", apperrors.ErrNotFound, tce)
 		}
 
 		return fmt.Errorf("transact write items: %w", err)
