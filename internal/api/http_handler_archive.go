@@ -13,8 +13,7 @@ func (h *HTTPHandler) archiveHabit(w http.ResponseWriter, r *http.Request) {
 	uid := auth.MustGetUserID(ctx)
 	hid := uuid.MustParse(r.PostFormValue("habit_uuid"))
 
-	_, err := h.Repository.ArchiveHabit(ctx, uid, hid)
-	if err != nil {
+	if err := h.Repository.ArchiveHabit(ctx, uid, hid); err != nil {
 		h.handleError(w, r, fmt.Errorf("archive a habit: %w", err))
 		return
 	}
@@ -27,8 +26,7 @@ func (h *HTTPHandler) unarchiveHabit(w http.ResponseWriter, r *http.Request) {
 	uid := auth.MustGetUserID(ctx)
 	hid := uuid.MustParse(r.PostFormValue("habit_uuid"))
 
-	_, err := h.Repository.UnarchiveHabit(ctx, uid, hid)
-	if err != nil {
+	if err := h.Repository.UnarchiveHabit(ctx, uid, hid); err != nil {
 		h.handleError(w, r, fmt.Errorf("unarchive a habit: %w", err))
 		return
 	}

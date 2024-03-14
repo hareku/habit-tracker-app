@@ -41,7 +41,7 @@ func NewDynamoHabit(userID auth.UserID, habitUUID uuid.UUID) *DynamoHabit {
 	}
 }
 
-// GetKey returns the composite primary key of the movie in a format that can be
+// GetKey returns the composite primary key of the habit in a format that can be
 // sent to DynamoDB.
 func (h *DynamoHabit) GetKey() map[string]types.AttributeValue {
 	pk, err := attributevalue.Marshal(h.PK)
@@ -124,41 +124,6 @@ func (r *DynamoRepository) AllHabits(ctx context.Context, uid auth.UserID) ([]*D
 	return habits, nil
 }
 
-func (r *DynamoRepository) AllArchivedHabits(ctx context.Context, uid auth.UserID) ([]*DynamoHabit, error) {
-	expr, err := expression.NewBuilder().
-		WithKeyCondition(
-			expression.Key("PK").Equal(expression.Value(fmt.Sprintf("USER#%s", uid))).
-				And(expression.Key("SK").BeginsWith("ARCHIVED_HABITS#")),
-		).
-		Build()
-	if err != nil {
-		return nil, fmt.Errorf("build expression: %w", err)
-	}
-
-	var habits []*DynamoHabit
-	paginator := dynamodb.NewQueryPaginator(r.Client, &dynamodb.QueryInput{
-		TableName:                 &r.TableName,
-		ExpressionAttributeNames:  expr.Names(),
-		ExpressionAttributeValues: expr.Values(),
-		KeyConditionExpression:    expr.KeyCondition(),
-		ProjectionExpression:      expr.Projection(),
-	})
-	for paginator.HasMorePages() {
-		resp, err := paginator.NextPage(ctx)
-		if err != nil {
-			return nil, fmt.Errorf("query paginator: %w", err)
-		}
-
-		var pageItems []*DynamoHabit
-		if err := attributevalue.UnmarshalListOfMaps(resp.Items, &pageItems); err != nil {
-			return nil, fmt.Errorf("unmarshal items: %w", err)
-		}
-		habits = append(habits, pageItems...)
-	}
-
-	return habits, nil
-}
-
 func (r *DynamoRepository) FindHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*DynamoHabit, error) {
 	h := NewDynamoHabit(uid, hid)
 	expr, err := expression.NewBuilder().
@@ -193,25 +158,6 @@ func (r *DynamoRepository) FindHabit(ctx context.Context, uid auth.UserID, hid u
 		}
 	}
 	return nil, apperrors.ErrNotFound
-}
-
-func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*DynamoHabit, error) {
-	var habit *DynamoHabit
-	habit.PK = fmt.Sprintf("USER#%s", uid)
-	habit.SK = fmt.Sprintf("ARCHIVED_HABITS#%s", hid)
-
-	resp, err := r.Client.GetItem(ctx, &dynamodb.GetItemInput{
-		TableName: &r.TableName,
-		Key:       habit.GetKey(),
-	})
-	if err != nil {
-		return nil, fmt.Errorf("dynamo: %w", err)
-	}
-
-	if err := attributevalue.UnmarshalMap(resp.Item, &habit); err != nil {
-		return nil, fmt.Errorf("unmarshal item: %w", err)
-	}
-	return habit, nil
 }
 
 func (r *DynamoRepository) CreateHabit(ctx context.Context, uid auth.UserID, title string) (*DynamoHabit, error) {
@@ -250,41 +196,6 @@ func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid auth.UserID, hid
 	return nil
 }
 
-func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*DynamoHabit, error) {
-	h, err := r.FindHabit(ctx, uid, hid)
-	if err != nil {
-		return nil, fmt.Errorf("find a habit [%s]: %w", hid, err)
-	}
-	deleteKey := h.GetKey()
-
-	h.SK = fmt.Sprintf("ARCHIVED_HABITS#%s", hid)
-	item, err := attributevalue.MarshalMap(h)
-	if err != nil {
-		return nil, fmt.Errorf("marshal habit: %w", err)
-	}
-
-	if _, err := r.Client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
-		TransactItems: []types.TransactWriteItem{
-			{
-				Delete: &types.Delete{
-					TableName: &r.TableName,
-					Key:       deleteKey,
-				},
-			},
-			{
-				Put: &types.Put{
-					TableName: &r.TableName,
-					Item:      item,
-				},
-			},
-		},
-	}); err != nil {
-		return nil, fmt.Errorf("transact write items: %w", err)
-	}
-
-	return h, nil
-}
-
 type DynamoRepositoryUpdateHabitInput struct {
 	UserID    auth.UserID
 	HabitUUID uuid.UUID
@@ -311,42 +222,6 @@ func (r *DynamoRepository) UpdateHabit(ctx context.Context, in *DynamoRepository
 		return fmt.Errorf("update item: %w", err)
 	}
 	return nil
-}
-
-func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*DynamoHabit, error) {
-	h, err := r.FindArchivedHabit(ctx, uid, hid)
-	if err != nil {
-		return nil, fmt.Errorf("find a habit [%s]: %w", hid, err)
-	}
-
-	deleteKey := h.GetKey()
-
-	h.SK = fmt.Sprintf("HABITS#%s", hid)
-	item, err := attributevalue.MarshalMap(h)
-	if err != nil {
-		return nil, fmt.Errorf("marshal habit: %w", err)
-	}
-
-	if _, err := r.Client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{
-		TransactItems: []types.TransactWriteItem{
-			{
-				Delete: &types.Delete{
-					TableName: &r.TableName,
-					Key:       deleteKey,
-				},
-			},
-			{
-				Put: &types.Put{
-					TableName: &r.TableName,
-					Item:      item,
-				},
-			},
-		},
-	}); err != nil {
-		return nil, fmt.Errorf("transact write items: %w", err)
-	}
-
-	return h, nil
 }
 
 func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid auth.UserID, hid uuid.UUID, limit int32) ([]*DynamoCheck, error) {
