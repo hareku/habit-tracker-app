@@ -42,7 +42,7 @@
 
   {{if .Habits}}
   <h3>Archive Habit</h3>
-  <form action="/archive-habit" method="post" onsubmit="return window.confirm('Archive habit?')">
+  <form action="/archived-habits" method="post" onsubmit="return window.confirm('Archive habit?')">
     {{ .CSRFHiddenInput }}
     <select name="habit_uuid">
       {{range .Habits}}
@@ -69,8 +69,9 @@
 <details>
   <summary>Archived Habits</summary>
 
-  <form action="/unarchive-habit" method="post" onsubmit="return window.confirm('Unarchive habit?')">
+  <form action="/archived-habits" method="post" onsubmit="return window.confirm('Unarchive habit?')">
     {{ .CSRFHiddenInput }}
+    {{ method_field "DELETE" }}
     <select name="habit_uuid">
       {{range .ArchivedHabits}}
         <option value="{{.UUID}}">{{.Title}} ({{.ChecksCount}})</option>

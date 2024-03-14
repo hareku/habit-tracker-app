@@ -67,12 +67,19 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 	r.Group(func(r chi.Router) {
 		r.Use(in.AuthMiddleware)
 		r.Get("/", h.showTopPage)
-		r.Get(fmt.Sprintf("/habits/{%s}", URLParamHabitUUID), h.showHabitPage)
+
+		r.Route(fmt.Sprintf("/habits/{%s}", URLParamHabitUUID), func(r chi.Router) {
+			r.Get("/", h.showHabitPage)
+		})
+
+		r.Route("/archived-habits", func(r chi.Router) {
+			r.Post("/", h.archiveHabit)
+			r.Delete("/", h.unarchiveHabit)
+		})
+
 		r.Post("/habits", h.createHabit)
 		r.Post("/checks", h.createCheck)
 		r.Post("/update-habit", h.updateHabit)
-		r.Post("/archive-habit", h.archiveHabit)
-		r.Post("/unarchive-habit", h.unarchiveHabit)
 		r.Post("/delete-habit", h.deleteHabit)
 		r.Delete(fmt.Sprintf("/habits/{%s}/checks", URLParamHabitUUID), h.deleteCheck)
 		r.Post("/logout", h.logout)
