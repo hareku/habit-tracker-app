@@ -15,7 +15,6 @@ import (
 	formmethod "github.com/hareku/form-method-go"
 	"github.com/hareku/habit-tracker-app/internal/apperrors"
 	"github.com/hareku/habit-tracker-app/internal/auth"
-	"github.com/hareku/habit-tracker-app/internal/repository"
 	slogchi "github.com/samber/slog-chi"
 )
 
@@ -23,13 +22,13 @@ type NewHTTPHandlerInput struct {
 	AuthMiddleware Middleware
 	CSRFMiddleware Middleware
 	Authenticator  *auth.FirebaseAuthenticator
-	Repository     *repository.DynamoRepository
+	Repository     DynamoRepository
 	Secure         bool
 }
 
 type HTTPHandler struct {
 	Authenticator *auth.FirebaseAuthenticator
-	Repository    *repository.DynamoRepository
+	Repository    DynamoRepository
 	Secure        bool
 
 	mux   *chi.Mux

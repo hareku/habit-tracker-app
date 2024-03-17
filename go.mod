@@ -18,6 +18,7 @@ require (
 	github.com/hareku/form-method-go v0.0.0-20240309133419-37a526f06cf6
 	github.com/samber/slog-chi v1.9.1
 	github.com/stretchr/testify v1.9.0
+	go.uber.org/mock v0.4.0
 	google.golang.org/api v0.169.0
 )
 
