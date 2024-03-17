@@ -13,11 +13,94 @@ import (
 	context "context"
 	reflect "reflect"
 
+	auth "firebase.google.com/go/auth"
 	uuid "github.com/google/uuid"
-	auth "github.com/hareku/habit-tracker-app/internal/auth"
+	auth0 "github.com/hareku/habit-tracker-app/internal/auth"
 	repository "github.com/hareku/habit-tracker-app/internal/repository"
 	gomock "go.uber.org/mock/gomock"
 )
+
+// MockAuthenticator is a mock of Authenticator interface.
+type MockAuthenticator struct {
+	ctrl     *gomock.Controller
+	recorder *MockAuthenticatorMockRecorder
+}
+
+// MockAuthenticatorMockRecorder is the mock recorder for MockAuthenticator.
+type MockAuthenticatorMockRecorder struct {
+	mock *MockAuthenticator
+}
+
+// NewMockAuthenticator creates a new mock instance.
+func NewMockAuthenticator(ctrl *gomock.Controller) *MockAuthenticator {
+	mock := &MockAuthenticator{ctrl: ctrl}
+	mock.recorder = &MockAuthenticatorMockRecorder{mock}
+	return mock
+}
+
+// EXPECT returns an object that allows the caller to indicate expected use.
+func (m *MockAuthenticator) EXPECT() *MockAuthenticatorMockRecorder {
+	return m.recorder
+}
+
+// Authenticate mocks base method.
+func (m *MockAuthenticator) Authenticate(ctx context.Context, session string) (context.Context, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Authenticate", ctx, session)
+	ret0, _ := ret[0].(context.Context)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// Authenticate indicates an expected call of Authenticate.
+func (mr *MockAuthenticatorMockRecorder) Authenticate(ctx, session any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Authenticate", reflect.TypeOf((*MockAuthenticator)(nil).Authenticate), ctx, session)
+}
+
+// DeleteUser mocks base method.
+func (m *MockAuthenticator) DeleteUser(ctx context.Context, uid auth0.UserID) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteUser", ctx, uid)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// DeleteUser indicates an expected call of DeleteUser.
+func (mr *MockAuthenticatorMockRecorder) DeleteUser(ctx, uid any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteUser", reflect.TypeOf((*MockAuthenticator)(nil).DeleteUser), ctx, uid)
+}
+
+// GetUser mocks base method.
+func (m *MockAuthenticator) GetUser(ctx context.Context, uid auth0.UserID) (*auth.UserRecord, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetUser", ctx, uid)
+	ret0, _ := ret[0].(*auth.UserRecord)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetUser indicates an expected call of GetUser.
+func (mr *MockAuthenticatorMockRecorder) GetUser(ctx, uid any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetUser", reflect.TypeOf((*MockAuthenticator)(nil).GetUser), ctx, uid)
+}
+
+// SessionCookie mocks base method.
+func (m *MockAuthenticator) SessionCookie(ctx context.Context, idToken string) (string, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SessionCookie", ctx, idToken)
+	ret0, _ := ret[0].(string)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SessionCookie indicates an expected call of SessionCookie.
+func (mr *MockAuthenticatorMockRecorder) SessionCookie(ctx, idToken any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SessionCookie", reflect.TypeOf((*MockAuthenticator)(nil).SessionCookie), ctx, idToken)
+}
 
 // MockDynamoRepository is a mock of DynamoRepository interface.
 type MockDynamoRepository struct {
@@ -43,7 +126,7 @@ func (m *MockDynamoRepository) EXPECT() *MockDynamoRepositoryMockRecorder {
 }
 
 // AllArchivedHabits mocks base method.
-func (m *MockDynamoRepository) AllArchivedHabits(ctx context.Context, uid auth.UserID) ([]*repository.DynamoHabit, error) {
+func (m *MockDynamoRepository) AllArchivedHabits(ctx context.Context, uid auth0.UserID) ([]*repository.DynamoHabit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AllArchivedHabits", ctx, uid)
 	ret0, _ := ret[0].([]*repository.DynamoHabit)
@@ -58,7 +141,7 @@ func (mr *MockDynamoRepositoryMockRecorder) AllArchivedHabits(ctx, uid any) *gom
 }
 
 // AllHabits mocks base method.
-func (m *MockDynamoRepository) AllHabits(ctx context.Context, uid auth.UserID) ([]*repository.DynamoHabit, error) {
+func (m *MockDynamoRepository) AllHabits(ctx context.Context, uid auth0.UserID) ([]*repository.DynamoHabit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AllHabits", ctx, uid)
 	ret0, _ := ret[0].([]*repository.DynamoHabit)
@@ -73,7 +156,7 @@ func (mr *MockDynamoRepositoryMockRecorder) AllHabits(ctx, uid any) *gomock.Call
 }
 
 // ArchiveHabit mocks base method.
-func (m *MockDynamoRepository) ArchiveHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) error {
+func (m *MockDynamoRepository) ArchiveHabit(ctx context.Context, uid auth0.UserID, hid uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ArchiveHabit", ctx, uid, hid)
 	ret0, _ := ret[0].(error)
@@ -87,7 +170,7 @@ func (mr *MockDynamoRepositoryMockRecorder) ArchiveHabit(ctx, uid, hid any) *gom
 }
 
 // CreateCheck mocks base method.
-func (m *MockDynamoRepository) CreateCheck(ctx context.Context, uid auth.UserID, hid uuid.UUID, date string) (*repository.DynamoCheck, error) {
+func (m *MockDynamoRepository) CreateCheck(ctx context.Context, uid auth0.UserID, hid uuid.UUID, date string) (*repository.DynamoCheck, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateCheck", ctx, uid, hid, date)
 	ret0, _ := ret[0].(*repository.DynamoCheck)
@@ -102,7 +185,7 @@ func (mr *MockDynamoRepositoryMockRecorder) CreateCheck(ctx, uid, hid, date any)
 }
 
 // CreateHabit mocks base method.
-func (m *MockDynamoRepository) CreateHabit(ctx context.Context, uid auth.UserID, title string) (*repository.DynamoHabit, error) {
+func (m *MockDynamoRepository) CreateHabit(ctx context.Context, uid auth0.UserID, title string) (*repository.DynamoHabit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateHabit", ctx, uid, title)
 	ret0, _ := ret[0].(*repository.DynamoHabit)
@@ -117,7 +200,7 @@ func (mr *MockDynamoRepositoryMockRecorder) CreateHabit(ctx, uid, title any) *go
 }
 
 // DeleteCheck mocks base method.
-func (m *MockDynamoRepository) DeleteCheck(ctx context.Context, uid auth.UserID, hid uuid.UUID, date string) error {
+func (m *MockDynamoRepository) DeleteCheck(ctx context.Context, uid auth0.UserID, hid uuid.UUID, date string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteCheck", ctx, uid, hid, date)
 	ret0, _ := ret[0].(error)
@@ -131,7 +214,7 @@ func (mr *MockDynamoRepositoryMockRecorder) DeleteCheck(ctx, uid, hid, date any)
 }
 
 // DeleteHabit mocks base method.
-func (m *MockDynamoRepository) DeleteHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) error {
+func (m *MockDynamoRepository) DeleteHabit(ctx context.Context, uid auth0.UserID, hid uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteHabit", ctx, uid, hid)
 	ret0, _ := ret[0].(error)
@@ -145,7 +228,7 @@ func (mr *MockDynamoRepositoryMockRecorder) DeleteHabit(ctx, uid, hid any) *gomo
 }
 
 // FindArchivedHabit mocks base method.
-func (m *MockDynamoRepository) FindArchivedHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*repository.DynamoHabit, error) {
+func (m *MockDynamoRepository) FindArchivedHabit(ctx context.Context, uid auth0.UserID, hid uuid.UUID) (*repository.DynamoHabit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindArchivedHabit", ctx, uid, hid)
 	ret0, _ := ret[0].(*repository.DynamoHabit)
@@ -160,7 +243,7 @@ func (mr *MockDynamoRepositoryMockRecorder) FindArchivedHabit(ctx, uid, hid any)
 }
 
 // FindHabit mocks base method.
-func (m *MockDynamoRepository) FindHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*repository.DynamoHabit, error) {
+func (m *MockDynamoRepository) FindHabit(ctx context.Context, uid auth0.UserID, hid uuid.UUID) (*repository.DynamoHabit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindHabit", ctx, uid, hid)
 	ret0, _ := ret[0].(*repository.DynamoHabit)
@@ -175,7 +258,7 @@ func (mr *MockDynamoRepositoryMockRecorder) FindHabit(ctx, uid, hid any) *gomock
 }
 
 // ListLastWeekChecksInAllHabits mocks base method.
-func (m *MockDynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, uid auth.UserID) ([]*repository.DynamoCheck, error) {
+func (m *MockDynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, uid auth0.UserID) ([]*repository.DynamoCheck, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListLastWeekChecksInAllHabits", ctx, uid)
 	ret0, _ := ret[0].([]*repository.DynamoCheck)
@@ -190,7 +273,7 @@ func (mr *MockDynamoRepositoryMockRecorder) ListLastWeekChecksInAllHabits(ctx, u
 }
 
 // ListLatestChecksWithLimit mocks base method.
-func (m *MockDynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid auth.UserID, hid uuid.UUID, limit int32) ([]*repository.DynamoCheck, error) {
+func (m *MockDynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid auth0.UserID, hid uuid.UUID, limit int32) ([]*repository.DynamoCheck, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListLatestChecksWithLimit", ctx, uid, hid, limit)
 	ret0, _ := ret[0].([]*repository.DynamoCheck)
@@ -205,7 +288,7 @@ func (mr *MockDynamoRepositoryMockRecorder) ListLatestChecksWithLimit(ctx, uid, 
 }
 
 // UnarchiveHabit mocks base method.
-func (m *MockDynamoRepository) UnarchiveHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) error {
+func (m *MockDynamoRepository) UnarchiveHabit(ctx context.Context, uid auth0.UserID, hid uuid.UUID) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UnarchiveHabit", ctx, uid, hid)
 	ret0, _ := ret[0].(error)

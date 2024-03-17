@@ -14,20 +14,19 @@ import (
 	"github.com/google/uuid"
 	formmethod "github.com/hareku/form-method-go"
 	"github.com/hareku/habit-tracker-app/internal/apperrors"
-	"github.com/hareku/habit-tracker-app/internal/auth"
 	slogchi "github.com/samber/slog-chi"
 )
 
 type NewHTTPHandlerInput struct {
 	AuthMiddleware Middleware
 	CSRFMiddleware Middleware
-	Authenticator  *auth.FirebaseAuthenticator
+	Authenticator  Authenticator
 	Repository     DynamoRepository
 	Secure         bool
 }
 
 type HTTPHandler struct {
-	Authenticator *auth.FirebaseAuthenticator
+	Authenticator Authenticator
 	Repository    DynamoRepository
 	Secure        bool
 
