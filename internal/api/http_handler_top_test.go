@@ -35,12 +35,8 @@ func TestHTTPHandler_showTopPage(t *testing.T) {
 
 	seeder := repositorytest.NewSeeder()
 	habits := []*repository.DynamoHabit{
-		seeder.SeedHabit(uid, func(h *repository.DynamoHabit) {
-			h.Title = "habit1"
-		}),
-		seeder.SeedHabit(uid, func(h *repository.DynamoHabit) {
-			h.Title = "habit2"
-		}),
+		seeder.SeedHabit(uid, nil),
+		seeder.SeedHabit(uid, nil),
 	}
 
 	repo.EXPECT().AllHabits(gomock.Any(), gomock.Any()).Times(1).Return(habits, nil)

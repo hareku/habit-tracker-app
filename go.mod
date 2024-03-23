@@ -12,6 +12,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.30.4
 	github.com/awslabs/aws-lambda-go-api-proxy v0.16.1
 	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible
+	github.com/brianvoe/gofakeit/v7 v7.0.2
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/csrf v1.7.2
