@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+      Habit Tracker App
+    </title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+  </head>
+  <body>
+    <main>
+      <h1>
+        <a href="/">
+          Habit Tracker App
+        </a>
+      </h1>
+      <p>
+        Hello,
+        <b>
+          test
+        </b>
+      </p>
+      <h2>
+        Your Habits
+      </h2>
+      <table>
+        <thead>
+          <tr>
+            <th>
+              Title
+            </th>
+            <th>
+              LastCheckedAt
+            </th>
+            <th>
+              ChecksCount
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <th>
+              <a href="/habits/52fdfc07-2182-454f-963f-5f0f9a621d72">
+                habit1
+              </a>
+            </th>
+            <th>
+              <span>
+                2021-01-01
+              </span>
+            </th>
+            <th>
+              0
+            </th>
+          </tr>
+          <tr>
+            <th>
+              <a href="/habits/037c4d7b-bb04-47d1-a2c6-4981855ad868">
+                habit2
+              </a>
+            </th>
+            <th>
+              <span>
+                No record in the past week
+              </span>
+            </th>
+            <th>
+              0
+            </th>
+          </tr>
+        </tbody>
+      </table>
+      <h2>
+        Actions
+      </h2>
+      <details>
+        <summary>
+          Manage Habits
+        </summary>
+        <h3>
+          Create Habit
+        </h3>
+        <form action="/habits" method="post">
+          <input type="text" name="title" placeholder="habit title" required>
+          <input type="submit" value="create">
+        </form>
+        <h3>
+          Archive Habit
+        </h3>
+        <form action="/archived-habits" method="post" onsubmit="return window.confirm('Archive habit?')">
+          <select name="habit_uuid">
+            <option value="52fdfc07-2182-454f-963f-5f0f9a621d72">
+              habit1
+            </option>
+            <option value="037c4d7b-bb04-47d1-a2c6-4981855ad868">
+              habit2
+            </option>
+          </select>
+          <input type="submit" value="archive">
+        </form>
+        <h3>
+          Delete Habit
+        </h3>
+        <form action="/delete-habit" method="post" onsubmit="return window.confirm('Delete habit?')">
+          <select name="habit_uuid">
+            <option value="52fdfc07-2182-454f-963f-5f0f9a621d72">
+              habit1
+            </option>
+            <option value="037c4d7b-bb04-47d1-a2c6-4981855ad868">
+              habit2
+            </option>
+          </select>
+          <input type="submit" value="delete">
+        </form>
+      </details>
+      <details>
+        <summary>
+          Account
+        </summary>
+        <form action="/logout" method="post" onsubmit="return window.confirm('Logout?')">
+          <input type="submit" value="logout">
+        </form>
+        <form action="/delete-account" method="post" onsubmit="return window.confirm('Delete account?')">
+          <input type="submit" value="delete account">
+        </form>
+      </details>
+    </main>
+  </body>
+</html>

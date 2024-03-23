@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression v1.7.9
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.30.4
 	github.com/awslabs/aws-lambda-go-api-proxy v0.16.1
+	github.com/bradleyjkemp/cupaloy v2.3.0+incompatible
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/csrf v1.7.2
@@ -18,6 +19,7 @@ require (
 	github.com/hareku/form-method-go v0.0.0-20240309133419-37a526f06cf6
 	github.com/samber/slog-chi v1.9.1
 	github.com/stretchr/testify v1.9.0
+	github.com/yosssi/gohtml v0.0.0-20201013000340-ee4748c638f4
 	go.uber.org/mock v0.4.0
 	google.golang.org/api v0.169.0
 )

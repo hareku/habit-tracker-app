@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"net/http"
 
 	firebase "firebase.google.com/go/auth"
 	"github.com/google/uuid"
@@ -31,3 +32,5 @@ type DynamoRepository interface {
 	UnarchiveHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) error
 	UpdateHabit(ctx context.Context, in *repository.DynamoRepositoryUpdateHabitInput) error
 }
+
+type Middleware func(next http.Handler) http.Handler

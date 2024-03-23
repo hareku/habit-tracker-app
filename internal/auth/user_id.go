@@ -8,6 +8,10 @@ import (
 // UserID is the identifier of the user.
 type UserID string
 
+func (s UserID) String() string {
+	return string(s)
+}
+
 type authContextKey string
 
 const userIDKey = authContextKey("auth.user-id")
