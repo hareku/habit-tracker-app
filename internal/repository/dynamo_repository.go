@@ -75,7 +75,7 @@ func NewDynamoCheck(userID auth.UserID, habitUUID uuid.UUID, date string) *Dynam
 	}
 }
 
-// GetKey returns the composite primary key of the movie in a format that can be
+// GetKey returns the composite primary key of the check in a format that can be
 // sent to DynamoDB.
 func (h *DynamoCheck) GetKey() map[string]types.AttributeValue {
 	pk, err := attributevalue.Marshal(h.PK)
