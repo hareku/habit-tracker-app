@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	firebase "firebase.google.com/go/auth"
-	"github.com/google/uuid"
 	"github.com/hareku/habit-tracker-app/internal/auth"
 	"github.com/hareku/habit-tracker-app/internal/repository"
 )
@@ -20,16 +19,16 @@ type Authenticator interface {
 type DynamoRepository interface {
 	AllArchivedHabits(ctx context.Context, uid auth.UserID) ([]*repository.DynamoHabit, error)
 	AllHabits(ctx context.Context, uid auth.UserID) ([]*repository.DynamoHabit, error)
-	ArchiveHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) error
-	CreateCheck(ctx context.Context, uid auth.UserID, hid uuid.UUID, date string) (*repository.DynamoCheck, error)
+	ArchiveHabit(ctx context.Context, uid auth.UserID, hid string) error
+	CreateCheck(ctx context.Context, uid auth.UserID, hid, date string) (*repository.DynamoCheck, error)
 	CreateHabit(ctx context.Context, uid auth.UserID, title string) (*repository.DynamoHabit, error)
-	DeleteCheck(ctx context.Context, uid auth.UserID, hid uuid.UUID, date string) error
-	DeleteHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) error
-	FindArchivedHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*repository.DynamoHabit, error)
-	FindHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*repository.DynamoHabit, error)
+	DeleteCheck(ctx context.Context, uid auth.UserID, hid, date string) error
+	DeleteHabit(ctx context.Context, uid auth.UserID, hid string) error
+	FindArchivedHabit(ctx context.Context, uid auth.UserID, hid string) (*repository.DynamoHabit, error)
+	FindHabit(ctx context.Context, uid auth.UserID, hid string) (*repository.DynamoHabit, error)
 	ListLastWeekChecksInAllHabits(ctx context.Context, uid auth.UserID) ([]*repository.DynamoCheck, error)
-	ListLatestChecksWithLimit(ctx context.Context, uid auth.UserID, hid uuid.UUID, limit int32) ([]*repository.DynamoCheck, error)
-	UnarchiveHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) error
+	ListLatestChecksWithLimit(ctx context.Context, uid auth.UserID, hid string, limit int32) ([]*repository.DynamoCheck, error)
+	UnarchiveHabit(ctx context.Context, uid auth.UserID, hid string) error
 	UpdateHabit(ctx context.Context, in *repository.DynamoRepositoryUpdateHabitInput) error
 }
 

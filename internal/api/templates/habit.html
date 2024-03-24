@@ -2,7 +2,7 @@
 <h2><b>{{.Habit.Title}}</b></h2>
 <form action="/checks" method="post">
   {{ .CSRFHiddenInput }}
-  <input type="hidden" name="habit_uuid" value="{{.Habit.UUID}}">
+  <input type="hidden" name="habit_id" value="{{.Habit.ID}}">
   <input type="date" name="date" value="{{.NextCheckDate}}" required>
   <input type="submit" value="check">
 </form>
@@ -10,14 +10,14 @@
 <h2>Rename</h2>
 <form action="/update-habit" method="post" onsubmit="return window.confirm('Rename?')">
   {{ .CSRFHiddenInput }}
-  <input type="hidden" name="habit_uuid" value="{{$.Habit.UUID}}">
+  <input type="hidden" name="habit_id" value="{{$.Habit.ID}}">
   <input type="value" name="title" value="{{$.Habit.Title}}">
   <input type="submit" value="rename">
 </form>
 
 {{if .Checks}}
 <h2>Uncheck last {{len .Checks}} checks</h2>
-<form action="/habits/{{.Habit.UUID}}/checks" method="post" onsubmit="return window.confirm('Uncheck?')">
+<form action="/habits/{{.Habit.ID}}/checks" method="post" onsubmit="return window.confirm('Uncheck?')">
   {{ .CSRFHiddenInput }}
   {{ method_field "DELETE" }}
   <select name="date">

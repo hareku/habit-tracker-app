@@ -24,7 +24,7 @@ type DynamoRepository struct {
 type DynamoHabit struct {
 	PK          string
 	SK          string
-	UUID        string
+	ID          string `dynamodbav:"UUID"`
 	UserID      auth.UserID
 	Title       string
 	ChecksCount int
@@ -32,12 +32,12 @@ type DynamoHabit struct {
 	UpdatedAt   time.Time
 }
 
-func NewDynamoHabit(userID auth.UserID, habitUUID uuid.UUID) *DynamoHabit {
+func NewDynamoHabit(userID auth.UserID, habitID string) *DynamoHabit {
 	return &DynamoHabit{
 		PK:     fmt.Sprintf("USER#%s", userID),
-		SK:     fmt.Sprintf("HABITS#%s", habitUUID),
+		SK:     fmt.Sprintf("HABITS#%s", habitID),
 		UserID: userID,
-		UUID:   habitUUID.String(),
+		ID:     habitID,
 	}
 }
 
@@ -59,18 +59,18 @@ type DynamoCheck struct {
 	PK             string
 	SK             string
 	CheckDateLSISK string
-	HabitUUID      string
+	HabitID        string `dynamodbav:"HabitUUID"`
 	Date           string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 }
 
-func NewDynamoCheck(userID auth.UserID, habitUUID uuid.UUID, date string) *DynamoCheck {
+func NewDynamoCheck(userID auth.UserID, habitID, date string) *DynamoCheck {
 	return &DynamoCheck{
 		PK:             fmt.Sprintf("USER#%s", userID),
-		SK:             fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", habitUUID, date),
-		CheckDateLSISK: fmt.Sprintf("CHECK_DATE#%s__HABIT#%s", date, habitUUID),
-		HabitUUID:      habitUUID.String(),
+		SK:             fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", habitID, date),
+		CheckDateLSISK: fmt.Sprintf("CHECK_DATE#%s__HABIT#%s", date, habitID),
+		HabitID:        habitID,
 		Date:           date,
 	}
 }
@@ -124,7 +124,7 @@ func (r *DynamoRepository) AllHabits(ctx context.Context, uid auth.UserID) ([]*D
 	return habits, nil
 }
 
-func (r *DynamoRepository) FindHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*DynamoHabit, error) {
+func (r *DynamoRepository) FindHabit(ctx context.Context, uid auth.UserID, hid string) (*DynamoHabit, error) {
 	h := NewDynamoHabit(uid, hid)
 	expr, err := expression.NewBuilder().
 		WithKeyCondition(
@@ -161,7 +161,7 @@ func (r *DynamoRepository) FindHabit(ctx context.Context, uid auth.UserID, hid u
 }
 
 func (r *DynamoRepository) CreateHabit(ctx context.Context, uid auth.UserID, title string) (*DynamoHabit, error) {
-	h := NewDynamoHabit(uid, uuid.New())
+	h := NewDynamoHabit(uid, uuid.New().String())
 	h.Title = title
 	h.CreatedAt = time.Now().Round(time.Nanosecond)
 	h.UpdatedAt = h.CreatedAt
@@ -185,7 +185,7 @@ func (r *DynamoRepository) CreateHabit(ctx context.Context, uid auth.UserID, tit
 	return h, nil
 }
 
-func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) error {
+func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid auth.UserID, hid string) error {
 	_, err := r.Client.DeleteItem(ctx, &dynamodb.DeleteItemInput{
 		TableName: &r.TableName,
 		Key:       NewDynamoHabit(uid, hid).GetKey(),
@@ -197,13 +197,13 @@ func (r *DynamoRepository) DeleteHabit(ctx context.Context, uid auth.UserID, hid
 }
 
 type DynamoRepositoryUpdateHabitInput struct {
-	UserID    auth.UserID
-	HabitUUID uuid.UUID
-	Title     string
+	UserID  auth.UserID
+	HabitID string
+	Title   string
 }
 
 func (r *DynamoRepository) UpdateHabit(ctx context.Context, in *DynamoRepositoryUpdateHabitInput) error {
-	h := NewDynamoHabit(in.UserID, in.HabitUUID)
+	h := NewDynamoHabit(in.UserID, in.HabitID)
 
 	update := expression.Set(expression.Name("Title"), expression.Value(in.Title))
 	expr, err := expression.NewBuilder().WithUpdate(update).Build()
@@ -224,7 +224,7 @@ func (r *DynamoRepository) UpdateHabit(ctx context.Context, in *DynamoRepository
 	return nil
 }
 
-func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid auth.UserID, hid uuid.UUID, limit int32) ([]*DynamoCheck, error) {
+func (r *DynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid auth.UserID, hid string, limit int32) ([]*DynamoCheck, error) {
 	expr, err := expression.NewBuilder().
 		WithKeyCondition(
 			expression.Key("PK").Equal(expression.Value(fmt.Sprintf("USER#%s", uid))).
@@ -296,7 +296,7 @@ func (r *DynamoRepository) ListLastWeekChecksInAllHabits(ctx context.Context, ui
 	return checks, nil
 }
 
-func (r *DynamoRepository) CreateCheck(ctx context.Context, uid auth.UserID, hid uuid.UUID, date string) (*DynamoCheck, error) {
+func (r *DynamoRepository) CreateCheck(ctx context.Context, uid auth.UserID, hid, date string) (*DynamoCheck, error) {
 	c := NewDynamoCheck(uid, hid, date)
 	c.CreatedAt = time.Now().Round(time.Nanosecond)
 	c.UpdatedAt = c.CreatedAt
@@ -356,7 +356,7 @@ func (r *DynamoRepository) CreateCheck(ctx context.Context, uid auth.UserID, hid
 	return c, nil
 }
 
-func (r *DynamoRepository) DeleteCheck(ctx context.Context, uid auth.UserID, hid uuid.UUID, date string) error {
+func (r *DynamoRepository) DeleteCheck(ctx context.Context, uid auth.UserID, hid, date string) error {
 	c := &DynamoCheck{
 		PK: fmt.Sprintf("USER#%s", uid),
 		SK: fmt.Sprintf("HABIT#%s__CHECK_DATE#%s", hid, date),

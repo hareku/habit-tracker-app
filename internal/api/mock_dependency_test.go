@@ -14,7 +14,6 @@ import (
 	reflect "reflect"
 
 	auth "firebase.google.com/go/auth"
-	uuid "github.com/google/uuid"
 	auth0 "github.com/hareku/habit-tracker-app/internal/auth"
 	repository "github.com/hareku/habit-tracker-app/internal/repository"
 	gomock "go.uber.org/mock/gomock"
@@ -156,7 +155,7 @@ func (mr *MockDynamoRepositoryMockRecorder) AllHabits(ctx, uid any) *gomock.Call
 }
 
 // ArchiveHabit mocks base method.
-func (m *MockDynamoRepository) ArchiveHabit(ctx context.Context, uid auth0.UserID, hid uuid.UUID) error {
+func (m *MockDynamoRepository) ArchiveHabit(ctx context.Context, uid auth0.UserID, hid string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ArchiveHabit", ctx, uid, hid)
 	ret0, _ := ret[0].(error)
@@ -170,7 +169,7 @@ func (mr *MockDynamoRepositoryMockRecorder) ArchiveHabit(ctx, uid, hid any) *gom
 }
 
 // CreateCheck mocks base method.
-func (m *MockDynamoRepository) CreateCheck(ctx context.Context, uid auth0.UserID, hid uuid.UUID, date string) (*repository.DynamoCheck, error) {
+func (m *MockDynamoRepository) CreateCheck(ctx context.Context, uid auth0.UserID, hid, date string) (*repository.DynamoCheck, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "CreateCheck", ctx, uid, hid, date)
 	ret0, _ := ret[0].(*repository.DynamoCheck)
@@ -200,7 +199,7 @@ func (mr *MockDynamoRepositoryMockRecorder) CreateHabit(ctx, uid, title any) *go
 }
 
 // DeleteCheck mocks base method.
-func (m *MockDynamoRepository) DeleteCheck(ctx context.Context, uid auth0.UserID, hid uuid.UUID, date string) error {
+func (m *MockDynamoRepository) DeleteCheck(ctx context.Context, uid auth0.UserID, hid, date string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteCheck", ctx, uid, hid, date)
 	ret0, _ := ret[0].(error)
@@ -214,7 +213,7 @@ func (mr *MockDynamoRepositoryMockRecorder) DeleteCheck(ctx, uid, hid, date any)
 }
 
 // DeleteHabit mocks base method.
-func (m *MockDynamoRepository) DeleteHabit(ctx context.Context, uid auth0.UserID, hid uuid.UUID) error {
+func (m *MockDynamoRepository) DeleteHabit(ctx context.Context, uid auth0.UserID, hid string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteHabit", ctx, uid, hid)
 	ret0, _ := ret[0].(error)
@@ -228,7 +227,7 @@ func (mr *MockDynamoRepositoryMockRecorder) DeleteHabit(ctx, uid, hid any) *gomo
 }
 
 // FindArchivedHabit mocks base method.
-func (m *MockDynamoRepository) FindArchivedHabit(ctx context.Context, uid auth0.UserID, hid uuid.UUID) (*repository.DynamoHabit, error) {
+func (m *MockDynamoRepository) FindArchivedHabit(ctx context.Context, uid auth0.UserID, hid string) (*repository.DynamoHabit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindArchivedHabit", ctx, uid, hid)
 	ret0, _ := ret[0].(*repository.DynamoHabit)
@@ -243,7 +242,7 @@ func (mr *MockDynamoRepositoryMockRecorder) FindArchivedHabit(ctx, uid, hid any)
 }
 
 // FindHabit mocks base method.
-func (m *MockDynamoRepository) FindHabit(ctx context.Context, uid auth0.UserID, hid uuid.UUID) (*repository.DynamoHabit, error) {
+func (m *MockDynamoRepository) FindHabit(ctx context.Context, uid auth0.UserID, hid string) (*repository.DynamoHabit, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "FindHabit", ctx, uid, hid)
 	ret0, _ := ret[0].(*repository.DynamoHabit)
@@ -273,7 +272,7 @@ func (mr *MockDynamoRepositoryMockRecorder) ListLastWeekChecksInAllHabits(ctx, u
 }
 
 // ListLatestChecksWithLimit mocks base method.
-func (m *MockDynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid auth0.UserID, hid uuid.UUID, limit int32) ([]*repository.DynamoCheck, error) {
+func (m *MockDynamoRepository) ListLatestChecksWithLimit(ctx context.Context, uid auth0.UserID, hid string, limit int32) ([]*repository.DynamoCheck, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "ListLatestChecksWithLimit", ctx, uid, hid, limit)
 	ret0, _ := ret[0].([]*repository.DynamoCheck)
@@ -288,7 +287,7 @@ func (mr *MockDynamoRepositoryMockRecorder) ListLatestChecksWithLimit(ctx, uid, 
 }
 
 // UnarchiveHabit mocks base method.
-func (m *MockDynamoRepository) UnarchiveHabit(ctx context.Context, uid auth0.UserID, hid uuid.UUID) error {
+func (m *MockDynamoRepository) UnarchiveHabit(ctx context.Context, uid auth0.UserID, hid string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "UnarchiveHabit", ctx, uid, hid)
 	ret0, _ := ret[0].(error)

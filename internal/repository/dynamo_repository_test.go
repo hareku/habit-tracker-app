@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/google/uuid"
 	"github.com/hareku/habit-tracker-app/dynamoconf"
 	"github.com/hareku/habit-tracker-app/internal/apperrors"
 	"github.com/hareku/habit-tracker-app/internal/auth"
@@ -84,7 +83,7 @@ func Test_FindHabit(t *testing.T) {
 	_, err = repo.CreateHabit(ctx, myUserID, "Habit2")
 	require.NoError(t, err)
 
-	got, err := repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
+	got, err := repo.FindHabit(ctx, myUserID, h1.ID)
 	require.NoError(t, err)
 	assert.Equal(t, h1, got)
 }
@@ -101,13 +100,13 @@ func Test_DeleteHabit(t *testing.T) {
 	h2, err := repo.CreateHabit(ctx, myUserID, "Habit2")
 	require.NoError(t, err)
 
-	require.NoError(t, repo.DeleteHabit(ctx, myUserID, uuid.MustParse(h1.UUID)))
+	require.NoError(t, repo.DeleteHabit(ctx, myUserID, h1.ID))
 
-	got1, err := repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
+	got1, err := repo.FindHabit(ctx, myUserID, h1.ID)
 	require.Error(t, err, "Got habit1: %+v", got1)
 	require.ErrorIs(t, err, apperrors.ErrNotFound)
 
-	got2, err := repo.FindHabit(ctx, myUserID, uuid.MustParse(h2.UUID))
+	got2, err := repo.FindHabit(ctx, myUserID, h2.ID)
 	require.NoError(t, err)
 	assert.Equal(t, h2, got2)
 }
@@ -121,13 +120,13 @@ func Test_CreateCheck_Twice(t *testing.T) {
 	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
 	require.NoError(t, err)
 
-	c1, err := repo.CreateCheck(ctx, myUserID, uuid.MustParse(h1.UUID), "2000-01-01")
+	c1, err := repo.CreateCheck(ctx, myUserID, h1.ID, "2000-01-01")
 	require.NoError(t, err)
-	_, err = repo.CreateCheck(ctx, myUserID, uuid.MustParse(h1.UUID), c1.Date)
+	_, err = repo.CreateCheck(ctx, myUserID, h1.ID, c1.Date)
 	require.Error(t, err)
 	require.ErrorIs(t, err, apperrors.ErrConflict)
 
-	h1, err = repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
+	h1, err = repo.FindHabit(ctx, myUserID, h1.ID)
 	require.NoError(t, err)
 	require.Equal(t, 1, h1.ChecksCount)
 }
@@ -141,17 +140,17 @@ func Test_DeleteCheck_Twice(t *testing.T) {
 	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
 	require.NoError(t, err)
 
-	c1, err := repo.CreateCheck(ctx, myUserID, uuid.MustParse(h1.UUID), "2000-01-01")
+	c1, err := repo.CreateCheck(ctx, myUserID, h1.ID, "2000-01-01")
 	require.NoError(t, err)
-	require.NoError(t, repo.DeleteCheck(ctx, myUserID, uuid.MustParse(h1.UUID), c1.Date))
+	require.NoError(t, repo.DeleteCheck(ctx, myUserID, h1.ID, c1.Date))
 
-	h1, err = repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
+	h1, err = repo.FindHabit(ctx, myUserID, h1.ID)
 	require.NoError(t, err)
 	require.Equal(t, 0, h1.ChecksCount)
 
-	require.ErrorIs(t, repo.DeleteCheck(ctx, myUserID, uuid.MustParse(h1.UUID), c1.Date), apperrors.ErrNotFound)
+	require.ErrorIs(t, repo.DeleteCheck(ctx, myUserID, h1.ID, c1.Date), apperrors.ErrNotFound)
 
-	h1, err = repo.FindHabit(ctx, myUserID, uuid.MustParse(h1.UUID))
+	h1, err = repo.FindHabit(ctx, myUserID, h1.ID)
 	require.NoError(t, err)
 	require.Equal(t, 0, h1.ChecksCount)
 }
@@ -165,17 +164,17 @@ func Test_ListLatestChecksWithLimit(t *testing.T) {
 	h1, err := repo.CreateHabit(ctx, myUserID, "Habit1")
 	require.NoError(t, err)
 
-	c1, err := repo.CreateCheck(ctx, myUserID, uuid.MustParse(h1.UUID), "2000-01-01")
+	c1, err := repo.CreateCheck(ctx, myUserID, h1.ID, "2000-01-01")
 	require.NoError(t, err)
-	c2, err := repo.CreateCheck(ctx, myUserID, uuid.MustParse(h1.UUID), "2000-01-02")
+	c2, err := repo.CreateCheck(ctx, myUserID, h1.ID, "2000-01-02")
 	require.NoError(t, err)
 
-	got1, err := repo.ListLatestChecksWithLimit(ctx, myUserID, uuid.MustParse(h1.UUID), 1)
+	got1, err := repo.ListLatestChecksWithLimit(ctx, myUserID, h1.ID, 1)
 	require.NoError(t, err)
 	require.Len(t, got1, 1)
 	require.Equal(t, []*DynamoCheck{c2}, got1)
 
-	got2, err := repo.ListLatestChecksWithLimit(ctx, myUserID, uuid.MustParse(h1.UUID), 2)
+	got2, err := repo.ListLatestChecksWithLimit(ctx, myUserID, h1.ID, 2)
 	require.NoError(t, err)
 	require.Len(t, got2, 2)
 	require.Equal(t, []*DynamoCheck{c2, c1}, got2)

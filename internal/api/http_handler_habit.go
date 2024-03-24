@@ -6,14 +6,13 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/csrf"
 	"github.com/hareku/habit-tracker-app/internal/auth"
 	"github.com/hareku/habit-tracker-app/internal/repository"
 )
 
 func (h *HTTPHandler) showHabitPage(w http.ResponseWriter, r *http.Request) {
-	hid, ok := h.extractHabitUUID(w, r)
+	hid, ok := h.extractHabitID(w, r)
 	if !ok {
 		return
 	}
@@ -70,15 +69,15 @@ func (h *HTTPHandler) createHabit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.redirect(w, fmt.Sprintf("/habits/%s", habit.UUID))
+	h.redirect(w, fmt.Sprintf("/habits/%s", habit.ID))
 }
 
 func (h *HTTPHandler) updateHabit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
 	in := repository.DynamoRepositoryUpdateHabitInput{
-		UserID:    auth.MustGetUserID(ctx),
-		HabitUUID: uuid.MustParse(r.PostFormValue("habit_uuid")),
+		UserID:  auth.MustGetUserID(ctx),
+		HabitID: r.PostFormValue("habit_id"),
 	}
 
 	title := r.PostFormValue("title")
@@ -94,13 +93,13 @@ func (h *HTTPHandler) updateHabit(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.redirect(w, fmt.Sprintf("/habits/%s", in.HabitUUID))
+	h.redirect(w, fmt.Sprintf("/habits/%s", in.HabitID))
 }
 
 func (h *HTTPHandler) deleteHabit(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	uid := auth.MustGetUserID(ctx)
-	hid := uuid.MustParse(r.PostFormValue("habit_uuid"))
+	hid := r.PostFormValue("habit_id")
 
 	err := h.Repository.DeleteHabit(ctx, uid, hid)
 	if err != nil {

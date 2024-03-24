@@ -48,7 +48,7 @@ func (h *HTTPHandler) showTopPage(w http.ResponseWriter, r *http.Request) {
 	for _, habit := range habits {
 		h2 := &habit2{DynamoHabit: habit}
 		for _, check := range checks {
-			if check.HabitUUID != habit.UUID {
+			if check.HabitID != habit.ID {
 				continue
 			}
 

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	firebase "firebase.google.com/go/auth"
-	"github.com/google/uuid"
 	"github.com/hareku/habit-tracker-app/internal/auth"
 	"github.com/hareku/habit-tracker-app/internal/repository"
 	"github.com/hareku/habit-tracker-app/internal/repository/repositorytest"
@@ -42,7 +41,7 @@ func TestHTTPHandler_showTopPage(t *testing.T) {
 	repo.EXPECT().AllHabits(gomock.Any(), gomock.Any()).Times(1).Return(habits, nil)
 	repo.EXPECT().AllArchivedHabits(gomock.Any(), gomock.Any()).Times(1).Return(nil, nil)
 	repo.EXPECT().ListLastWeekChecksInAllHabits(gomock.Any(), gomock.Any()).Times(1).Return([]*repository.DynamoCheck{
-		seeder.SeedCheck(uid, uuid.MustParse(habits[0].UUID), "2021-01-01", nil),
+		seeder.SeedCheck(uid, habits[0].ID, "2021-01-01", nil),
 	}, nil)
 
 	h := NewHTTPHandler(&NewHTTPHandlerInput{

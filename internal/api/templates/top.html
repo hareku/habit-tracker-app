@@ -16,7 +16,7 @@
     {{range .Habits}}
     <tr>
         <th>
-          <a href="/habits/{{.UUID}}">{{.Title}}</a>
+          <a href="/habits/{{.ID}}">{{.Title}}</a>
         </th>
         <th>
           {{if .LatestCheck}}<span>{{.LatestCheck.Date}}</span>{{else}}<span>No record in the past week</span>{{end}}
@@ -44,9 +44,9 @@
   <h3>Archive Habit</h3>
   <form action="/archived-habits" method="post" onsubmit="return window.confirm('Archive habit?')">
     {{ .CSRFHiddenInput }}
-    <select name="habit_uuid">
+    <select name="habit_id">
       {{range .Habits}}
-        <option value="{{.UUID}}">{{.Title}}</option>
+        <option value="{{.ID}}">{{.Title}}</option>
       {{end}}
     </select>
     <input type="submit" value="archive">
@@ -55,9 +55,9 @@
   <h3>Delete Habit</h3>
   <form action="/delete-habit" method="post" onsubmit="return window.confirm('Delete habit?')">
     {{ .CSRFHiddenInput }}
-    <select name="habit_uuid">
+    <select name="habit_id">
       {{range .Habits}}
-        <option value="{{.UUID}}">{{.Title}}</option>
+        <option value="{{.ID}}">{{.Title}}</option>
       {{end}}
     </select>
     <input type="submit" value="delete">
@@ -72,9 +72,9 @@
   <form action="/archived-habits" method="post" onsubmit="return window.confirm('Unarchive habit?')">
     {{ .CSRFHiddenInput }}
     {{ method_field "DELETE" }}
-    <select name="habit_uuid">
+    <select name="habit_id">
       {{range .ArchivedHabits}}
-        <option value="{{.UUID}}">{{.Title}} ({{.ChecksCount}})</option>
+        <option value="{{.ID}}">{{.Title}} ({{.ChecksCount}})</option>
       {{end}}
     </select>
     <input type="submit" value="unarchive">

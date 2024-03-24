@@ -8,13 +8,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/expression"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/google/uuid"
 	"github.com/hareku/habit-tracker-app/internal/auth"
 )
 
-func NewArchivedDynamoHabit(userID auth.UserID, habitUUID uuid.UUID) *DynamoHabit {
-	h := NewDynamoHabit(userID, habitUUID)
-	h.SK = fmt.Sprintf("ARCHIVED_HABITS#%s", habitUUID)
+func NewArchivedDynamoHabit(userID auth.UserID, habitID string) *DynamoHabit {
+	h := NewDynamoHabit(userID, habitID)
+	h.SK = fmt.Sprintf("ARCHIVED_HABITS#%s", habitID)
 	return h
 }
 
@@ -53,7 +52,7 @@ func (r *DynamoRepository) AllArchivedHabits(ctx context.Context, uid auth.UserI
 	return habits, nil
 }
 
-func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) (*DynamoHabit, error) {
+func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid auth.UserID, hid string) (*DynamoHabit, error) {
 	h := NewArchivedDynamoHabit(uid, hid)
 
 	resp, err := r.Client.GetItem(ctx, &dynamodb.GetItemInput{
@@ -69,7 +68,7 @@ func (r *DynamoRepository) FindArchivedHabit(ctx context.Context, uid auth.UserI
 	return h, nil
 }
 
-func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) error {
+func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid auth.UserID, hid string) error {
 	h, err := r.FindHabit(ctx, uid, hid)
 	if err != nil {
 		return fmt.Errorf("find a habit [%s]: %w", hid, err)
@@ -104,7 +103,7 @@ func (r *DynamoRepository) ArchiveHabit(ctx context.Context, uid auth.UserID, hi
 	return nil
 }
 
-func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid auth.UserID, hid uuid.UUID) error {
+func (r *DynamoRepository) UnarchiveHabit(ctx context.Context, uid auth.UserID, hid string) error {
 	h, err := r.FindArchivedHabit(ctx, uid, hid)
 	if err != nil {
 		return fmt.Errorf("find a habit [%s]: %w", hid, err)

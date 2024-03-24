@@ -66,7 +66,7 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 		r.Use(in.AuthMiddleware)
 		r.Get("/", h.showTopPage)
 
-		r.Route(fmt.Sprintf("/habits/{%s}", URLParamHabitUUID), func(r chi.Router) {
+		r.Route(fmt.Sprintf("/habits/{%s}", URLParamHabitID), func(r chi.Router) {
 			r.Get("/", h.showHabitPage)
 		})
 
@@ -79,7 +79,7 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 		r.Post("/checks", h.createCheck)
 		r.Post("/update-habit", h.updateHabit)
 		r.Post("/delete-habit", h.deleteHabit)
-		r.Delete(fmt.Sprintf("/habits/{%s}/checks", URLParamHabitUUID), h.deleteCheck)
+		r.Delete(fmt.Sprintf("/habits/{%s}/checks", URLParamHabitID), h.deleteCheck)
 		r.Post("/logout", h.logout)
 		r.Post("/delete-account", h.deleteAccount)
 	})
@@ -133,22 +133,22 @@ func (h *HTTPHandler) writePage(w http.ResponseWriter, r *http.Request, status i
 	}
 }
 
-// extractHabitUUID extracts URLParamHabitUUID from URL path and returns it.
-// If URLParamHabitUUID is empty or invalid, it writes an error response and returns false.
-func (h *HTTPHandler) extractHabitUUID(w http.ResponseWriter, r *http.Request) (uuid.UUID, bool) {
-	str := chi.URLParam(r, URLParamHabitUUID)
+// extractHabitID extracts URLParamHabitID from URL path and returns it.
+// If URLParamHabitID is empty or invalid, it writes an error response and returns false.
+func (h *HTTPHandler) extractHabitID(w http.ResponseWriter, r *http.Request) (string, bool) {
+	str := chi.URLParam(r, URLParamHabitID)
 	if str == "" {
-		h.handleError(w, r, fmt.Errorf("%q is empty: %w", URLParamHabitUUID, apperrors.ErrNotFound))
-		return uuid.Nil, false
+		h.handleError(w, r, fmt.Errorf("%q is empty: %w", URLParamHabitID, apperrors.ErrNotFound))
+		return "", false
 	}
 	v, err := uuid.Parse(str)
 	if err != nil {
-		h.handleError(w, r, fmt.Errorf("parse %q failed %q: %w", URLParamHabitUUID, err, apperrors.ErrNotFound))
-		return uuid.Nil, false
+		h.handleError(w, r, fmt.Errorf("parse %q failed %q: %w", URLParamHabitID, err, apperrors.ErrNotFound))
+		return "", false
 	}
-	return v, true
+	return v.String(), true
 }
 
 const (
-	URLParamHabitUUID = "habitUUID"
+	URLParamHabitID = "habitID"
 )

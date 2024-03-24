@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/hareku/habit-tracker-app/internal/auth"
 )
 
@@ -14,7 +13,7 @@ func (h *HTTPHandler) createCheck(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
 	uid := auth.MustGetUserID(ctx)
-	hid := uuid.MustParse(r.PostFormValue("habit_uuid"))
+	hid := r.PostFormValue("habit_id")
 
 	date := r.PostFormValue("date")
 	layout := "2006-01-02"
@@ -35,7 +34,7 @@ func (h *HTTPHandler) createCheck(w http.ResponseWriter, r *http.Request) {
 func (h *HTTPHandler) deleteCheck(w http.ResponseWriter, r *http.Request) {
 	defer r.Body.Close()
 
-	hid, ok := h.extractHabitUUID(w, r)
+	hid, ok := h.extractHabitID(w, r)
 	if !ok {
 		return
 	}
