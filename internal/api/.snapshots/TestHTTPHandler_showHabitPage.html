@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>
+      Habit Tracker App
+    </title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css">
+  </head>
+  <body>
+    <main>
+      <h1>
+        <a href="/">
+          Habit Tracker App
+        </a>
+      </h1>
+      <h2>
+        <b>
+          sunglasses
+        </b>
+      </h2>
+      <form action="/checks" method="post">
+        <input type="hidden" name="habit_id" value="52fdfc07-2182-454f-963f-5f0f9a621d72">
+        <input type="date" name="date" value="2021-01-02" required>
+        <input type="submit" value="check">
+      </form>
+      <h2>
+        Rename
+      </h2>
+      <form action="/update-habit" method="post" onsubmit="return window.confirm('Rename?')">
+        <input type="hidden" name="habit_id" value="52fdfc07-2182-454f-963f-5f0f9a621d72">
+        <input type="value" name="title" value="sunglasses">
+        <input type="submit" value="rename">
+      </form>
+      <h2>
+        Uncheck last 2 checks
+      </h2>
+      <form action="/habits/52fdfc07-2182-454f-963f-5f0f9a621d72/checks" method="post" onsubmit="return window.confirm('Uncheck?')">
+        <input type="hidden" name="_method" value="DELETE">
+        <select name="date">
+          <option value="2021-01-01">
+            2021-01-01
+          </option>
+          <option value="2021-01-02">
+            2021-01-02
+          </option>
+        </select>
+        <input type="submit" value="uncheck">
+      </form>
+    </main>
+  </body>
+</html>
