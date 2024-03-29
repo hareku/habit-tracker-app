@@ -56,7 +56,6 @@ func (s *Seeder) SeedCheck(userID auth.UserID, habitID, date string, f func(c *r
 	faker := gofakeit.NewFaker(rand.New(s.src), true)
 
 	c := repository.NewDynamoCheck(userID, habitID, date)
-	c.Date = faker.Date().Format("2006-01-02")
 	c.CreatedAt = faker.Date()
 	c.UpdatedAt = c.CreatedAt
 
