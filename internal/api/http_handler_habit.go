@@ -21,7 +21,7 @@ func (h *HTTPHandler) showHabitPage(w http.ResponseWriter, r *http.Request) {
 	uid := auth.MustGetUserID(ctx)
 	userRec, err := h.Authenticator.GetUser(ctx, uid)
 	if err != nil {
-		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		h.handleError(w, r, fmt.Errorf("get auth user: %w", err))
 		return
 	}
 
