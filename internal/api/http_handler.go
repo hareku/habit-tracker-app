@@ -83,6 +83,7 @@ func NewHTTPHandler(in *NewHTTPHandlerInput) *HTTPHandler {
 		r.Post("/logout", h.logout)
 		r.Post("/delete-account", h.deleteAccount)
 	})
+	r.Get("/__/auth/*", h.handleFirebaseAuth)
 	r.Get("/login", h.showLoginPage)
 	r.Post("/session-cookie", h.storeSessionCookie)
 	h.mux = r

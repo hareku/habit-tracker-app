@@ -3,6 +3,8 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"time"
 
 	"github.com/gorilla/csrf"
@@ -65,4 +67,23 @@ func (h *HTTPHandler) storeSessionCookie(w http.ResponseWriter, r *http.Request)
 	})
 
 	h.redirect(w, "/")
+}
+
+// https://firebase.google.com/docs/auth/web/redirect-best-practices?hl=ja&authuser=1#proxy-requests
+func (h *HTTPHandler) handleFirebaseAuth(w http.ResponseWriter, r *http.Request) {
+	firebaseAuthDomain := "https://habittrackerapp-1da2d.firebaseapp.com"
+	target, err := url.Parse(firebaseAuthDomain)
+	if err != nil {
+		h.handleError(w, r, fmt.Errorf("parse firebaseAuthDomain: %w", err))
+		return
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(target)
+	originalDirector := proxy.Director
+	proxy.Director = func(req *http.Request) {
+		originalDirector(req)
+		req.Host = target.Host
+	}
+
+	proxy.ServeHTTP(w, r)
 }
