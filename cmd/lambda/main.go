@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	_ "embed"
+	"embed"
 	"fmt"
 	"log/slog"
 	"os"
@@ -21,10 +21,8 @@ import (
 )
 
 var (
-	//go:embed .secrets/habittrackerapp-cred.json
-	googleCred []byte
-	//go:embed .secrets/csrf-token.key
-	csrfKey []byte
+	//go:embed .secrets/*
+	secretsDir embed.FS
 	// handler is the main handler for the lambda function
 	handler *httpadapter.HandlerAdapter
 )
@@ -49,6 +47,11 @@ func init() {
 }
 
 func newHandler(ctx context.Context) (*httpadapter.HandlerAdapter, error) {
+	googleCred, err := secretsDir.ReadFile(".secrets/habittrackerapp-cred.json")
+	if err != nil {
+		return nil, fmt.Errorf("open google cred: %w", err)
+	}
+
 	fa, err := auth.NewFirebaseAuthenticator(googleCred)
 	if err != nil {
 		return nil, fmt.Errorf("init firebase authenticator: %w", err)
@@ -68,6 +71,11 @@ func newHandler(ctx context.Context) (*httpadapter.HandlerAdapter, error) {
 	if e := os.Getenv("AWS_ENDPOINT"); e != "" {
 		cfg.BaseEndpoint = aws.String(e)
 		slog.Info("Loaded AWS_ENDPOINT env", slog.String("endpoint", e))
+	}
+
+	csrfKey, err := secretsDir.ReadFile(".secrets/csrf-token.key")
+	if err != nil {
+		return nil, fmt.Errorf("open csrf key: %w", err)
 	}
 
 	return httpadapter.New(api.NewHTTPHandler(&api.NewHTTPHandlerInput{
