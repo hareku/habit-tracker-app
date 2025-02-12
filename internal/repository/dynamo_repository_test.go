@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/hareku/habit-tracker-app/dynamoconf"
 	"github.com/hareku/habit-tracker-app/internal/apperrors"
@@ -18,12 +18,11 @@ import (
 
 func newDynamoRepositoryTest(t *testing.T) *DynamoRepository {
 	ctx := context.Background()
-	cfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		t.Fatalf("load aws config: %v", err)
+	cfg := aws.Config{
+		BaseEndpoint: aws.String("http://localhost:8000"),
+		Region:       "ap-northeast-1",
+		Credentials:  credentials.NewStaticCredentialsProvider("dummy", "dummy", ""),
 	}
-	cfg.BaseEndpoint = aws.String("http://localhost:8000")
-	cfg.Region = "ap-northeast-1"
 
 	var in dynamodb.CreateTableInput
 	if err := json.Unmarshal(dynamoconf.Table, &in); err != nil {
