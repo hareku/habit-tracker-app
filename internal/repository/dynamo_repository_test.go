@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"context"
 	"encoding/json"
 	"sort"
 	"testing"
@@ -17,7 +16,7 @@ import (
 )
 
 func newDynamoRepositoryTest(t *testing.T) *DynamoRepository {
-	ctx := context.Background()
+	ctx := t.Context()
 	cfg := aws.Config{
 		BaseEndpoint: aws.String("http://localhost:8000"),
 		Region:       "ap-northeast-1",
@@ -48,7 +47,7 @@ func newDynamoRepositoryTest(t *testing.T) *DynamoRepository {
 
 func Test_AllHabits(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	myUserID := auth.UserID("MyUserID")
 	otherUserID := auth.UserID("OtherUserID")
@@ -73,7 +72,7 @@ func Test_AllHabits(t *testing.T) {
 
 func Test_FindHabit(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	myUserID := auth.UserID("MyUserID")
 
@@ -89,7 +88,7 @@ func Test_FindHabit(t *testing.T) {
 
 func Test_DeleteHabit(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	myUserID := auth.UserID("MyUserID")
 
@@ -112,7 +111,7 @@ func Test_DeleteHabit(t *testing.T) {
 
 func Test_CreateCheck_Twice(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	myUserID := auth.UserID("MyUserID")
 
@@ -132,7 +131,7 @@ func Test_CreateCheck_Twice(t *testing.T) {
 
 func Test_DeleteCheck_Twice(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	myUserID := auth.UserID("MyUserID")
 
@@ -156,7 +155,7 @@ func Test_DeleteCheck_Twice(t *testing.T) {
 
 func Test_ListLatestChecksWithLimit(t *testing.T) {
 	repo := newDynamoRepositoryTest(t)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	myUserID := auth.UserID("MyUserID")
 
