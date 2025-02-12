@@ -24,6 +24,7 @@ func newDynamoRepositoryTest(t *testing.T) *DynamoRepository {
 		Region:       "ap-northeast-1",
 		Credentials:  credentials.NewStaticCredentialsProvider("dummy", "dummy", ""),
 	}
+	time.Local = nil // Use UTC for dynamodb
 
 	var in dynamodb.CreateTableInput
 	if err := json.Unmarshal(dynamoconf.Table, &in); err != nil {
