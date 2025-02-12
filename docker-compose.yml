@@ -3,10 +3,7 @@ version: '3'
 services:
   dynamodb:
     image: amazon/dynamodb-local:2.5.4
-    command: -jar DynamoDBLocal.jar -sharedDb -dbPath ./data
     working_dir: /home/dynamodblocal
-    volumes:
-      - ./.dynamodb:/home/dynamodblocal/data
     expose:
       - 8000
     ports:

@@ -1,9 +1,11 @@
 package repository
 
 import (
+	"context"
 	"encoding/json"
 	"sort"
 	"testing"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/credentials"
@@ -30,10 +32,14 @@ func newDynamoRepositoryTest(t *testing.T) *DynamoRepository {
 	in.TableName = aws.String("Test_" + *in.TableName)
 
 	dynamoCli := dynamodb.NewFromConfig(cfg)
+
+	_, _ = dynamoCli.DeleteTable(ctx, &dynamodb.DeleteTableInput{TableName: in.TableName})
 	if _, err := dynamoCli.CreateTable(ctx, &in); err != nil {
 		t.Fatalf("create table: %v", err)
 	}
 	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), time.Second*5)
+		defer cancel()
 		if _, err := dynamoCli.DeleteTable(ctx, &dynamodb.DeleteTableInput{TableName: in.TableName}); err != nil {
 			t.Fatalf("delete table: %v", err)
 		}

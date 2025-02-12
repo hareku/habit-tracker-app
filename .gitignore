@@ -18,4 +18,3 @@
 .aws-sam
 cmd/lambda/.secrets/*.key
 cmd/lambda/.secrets/*.json
-.dynamodb
