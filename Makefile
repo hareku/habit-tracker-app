@@ -1,8 +1,5 @@
 .PHONY: build
 
-build:
-	sam build
-
 prepare:
 	go run ./cmd/generate-key cmd/lambda/.secrets/csrf-token.key
 	docker-compose up -d --no-recreate
@@ -13,6 +10,10 @@ dev:
 	sam build
 	sam local start-api --env-vars local-env.json --docker-network habit-tracker-app_default
 
-deploy:
-	sam build
+.PHONY: deploy
+build:
+	sam build --no-cached
+
+.PHONY: deploy
+deploy: build
 	sam deploy
