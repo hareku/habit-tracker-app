@@ -1,6 +1,6 @@
 .PHONY: build
 
-prepare:
+init:
 	go run ./cmd/generate-key cmd/lambda/.secrets/csrf-token.key
 	docker-compose up -d --no-recreate
 	aws dynamodb create-table --cli-input-json file://dynamoconf/table.json --endpoint-url http://localhost:8000
